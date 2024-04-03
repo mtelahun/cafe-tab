@@ -199,7 +199,7 @@ pub mod tests {
             event,
             TabEvent::ItemOrdered {
                 order_item: OrderItem {
-                    menu_number: 1,
+                    menu_number: 2,
                     description: "Coca-Cola".into(),
                     is_drink: true,
                     price: Decimal::from(3),
