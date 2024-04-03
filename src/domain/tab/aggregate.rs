@@ -48,23 +48,28 @@ impl Aggregate for Tab {
             TabCommand::OpenTab { waiter_id, table } => {
                 return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
             }
-            TabCommand::PlaceOrder { order_item } => {
-                let menu_item = MenuItem {
-                    menu_number: order_item.menu_number,
-                    description: order_item.description,
-                    price: order_item.price,
-                };
-                if self.opened {
-                    if order_item.is_drink {
-                        return Ok(vec![TabEvent::DrinkOrderPlaced { menu_item }]);
+            TabCommand::PlaceOrder { order_items } => {
+                let mut orders = Vec::new();
+                for order_item in order_items.iter() {
+                    let menu_item = MenuItem {
+                        menu_number: order_item.menu_number,
+                        description: order_item.description.to_owned(),
+                        price: order_item.price,
+                    };
+                    if self.opened {
+                        if order_item.is_drink {
+                            orders.push(TabEvent::DrinkOrderPlaced { menu_item });
+                        } else {
+                            orders.push(TabEvent::FoodOrderPlaced { menu_item });
+                        }
                     } else {
-                        return Ok(vec![TabEvent::FoodOrderPlaced { menu_item }]);
+                        return Err(TabError::TabNotOpened);
                     }
-                } else {
-                    return Err(TabError::TabNotOpened);
                 }
+
+                Ok(orders)
             }
-        };
+        }
     }
 
     fn apply(&mut self, event: Self::Event) {
@@ -104,7 +109,7 @@ pub mod tests {
         // Act
         let result = executor
             .when(TabCommand::PlaceOrder {
-                order_item: OrderItem::default(),
+                order_items: vec![OrderItem::default()],
             })
             .inspect_result();
 
@@ -146,12 +151,12 @@ pub mod tests {
         // Arrange
         let waiter_id = WaiterId::new();
         let tab_services = TabServices {};
-        let order_item = OrderItem {
+        let order_items = vec![OrderItem {
             menu_number: 1,
             description: "Steak".into(),
             is_drink: false,
             price: Decimal::from(10),
-        };
+        }];
         let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
             waiter_id,
             table: 1,
@@ -159,7 +164,7 @@ pub mod tests {
 
         // Act
         let mut event = executor
-            .when(TabCommand::PlaceOrder { order_item })
+            .when(TabCommand::PlaceOrder { order_items })
             .inspect_result()
             .expect("failed to execute command: OrderItem");
 
@@ -185,12 +190,12 @@ pub mod tests {
         // Arrange
         let waiter_id = WaiterId::new();
         let tab_services = TabServices {};
-        let order_item = OrderItem {
+        let order_items = vec![OrderItem {
             menu_number: 2,
             description: "Coca-Cola".into(),
             is_drink: true,
             price: Decimal::from(3),
-        };
+        }];
         let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
             waiter_id,
             table: 1,
@@ -198,7 +203,7 @@ pub mod tests {
 
         // Act
         let mut event = executor
-            .when(TabCommand::PlaceOrder { order_item })
+            .when(TabCommand::PlaceOrder { order_items })
             .inspect_result()
             .expect("failed to execute command: OrderItem");
 
@@ -218,43 +223,60 @@ pub mod tests {
         );
     }
 
-    // #[test]
-    // #[allow(non_snake_case)]
-    // fn given_opened_tab_when_order_multiple_items_then_multiple_OrderPlaced_events() {
-    //     // Arrange
-    //     let waiter_id = WaiterId::new();
-    //     let tab_services = TabServices {};
-    //     let order_item = OrderItem {
-    //         menu_number: 2,
-    //         description: "Coca-Cola".into(),
-    //         is_drink: true,
-    //         price: Decimal::from(3),
-    //     };
-    //     let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
-    //         waiter_id,
-    //         table: 1,
-    //     }]);
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_opened_tab_when_order_multiple_items_then_multiple_OrderPlaced_events() {
+        // Arrange
+        let waiter_id = WaiterId::new();
+        let tab_services = TabServices {};
+        let order_items = vec![
+            OrderItem {
+                menu_number: 1,
+                description: "Steak".into(),
+                is_drink: false,
+                price: Decimal::from(10),
+            },
+            OrderItem {
+                menu_number: 2,
+                description: "Coca-Cola".into(),
+                is_drink: true,
+                price: Decimal::from(3),
+            },
+        ];
+        let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
+            waiter_id,
+            table: 1,
+        }]);
 
-    //     // Act
-    //     let mut event = executor
-    //         .when(TabCommand::PlaceOrder { order_item })
-    //         .inspect_result()
-    //         .expect("failed to execute command: OrderItem");
+        // Act
+        let event = executor
+            .when(TabCommand::PlaceOrder { order_items })
+            .inspect_result()
+            .expect("failed to execute command: OrderItem");
 
-    //     // Assert
-    //     assert_eq!(event.len(), 1);
-    //     let event = event.pop().unwrap();
-    //     assert_eq!(
-    //         event,
-    //         TabEvent::OrderPlaced {
-    //             order_item: OrderItem {
-    //                 menu_number: 2,
-    //                 description: "Coca-Cola".into(),
-    //                 is_drink: true,
-    //                 price: Decimal::from(3),
-    //             }
-    //         },
-    //         "ItemOrdered"
-    //     );
-    // }
+        // Assert
+        assert_eq!(event.len(), 2);
+        assert_eq!(
+            event[0],
+            TabEvent::FoodOrderPlaced {
+                menu_item: MenuItem {
+                    menu_number: 1,
+                    description: "Steak".into(),
+                    price: Decimal::from(10),
+                }
+            },
+            "FoodOrderPlaced"
+        );
+        assert_eq!(
+            event[1],
+            TabEvent::DrinkOrderPlaced {
+                menu_item: MenuItem {
+                    menu_number: 2,
+                    description: "Coca-Cola".into(),
+                    price: Decimal::from(3),
+                }
+            },
+            "DrinkOrderPlaced"
+        );
+    }
 }
