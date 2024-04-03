@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{
-    command::TabCommand,
+    command::{OrderItem, TabCommand},
     error::TabError,
     event::{MenuItem, TabEvent},
     services::TabServices,
@@ -45,29 +45,9 @@ impl Aggregate for Tab {
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
-            TabCommand::OpenTab { waiter_id, table } => {
-                return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
-            }
+            TabCommand::OpenTab { waiter_id, table } => self.trigger_open_event(&waiter_id, table),
             TabCommand::PlaceOrder { order_items } => {
-                let mut orders = Vec::new();
-                for order_item in order_items.iter() {
-                    let menu_item = MenuItem {
-                        menu_number: order_item.menu_number,
-                        description: order_item.description.to_owned(),
-                        price: order_item.price,
-                    };
-                    if self.opened {
-                        if order_item.is_drink {
-                            orders.push(TabEvent::DrinkOrderPlaced { menu_item });
-                        } else {
-                            orders.push(TabEvent::FoodOrderPlaced { menu_item });
-                        }
-                    } else {
-                        return Err(TabError::TabNotOpened);
-                    }
-                }
-
-                Ok(orders)
+                self.read_orders_and_trigger_events(&order_items)
             }
         }
     }
@@ -82,6 +62,44 @@ impl Aggregate for Tab {
             TabEvent::FoodOrderPlaced { menu_item } => self.food_item = menu_item,
             TabEvent::DrinkOrderPlaced { menu_item } => self.drink_item = menu_item,
         }
+    }
+}
+
+impl Tab {
+    fn read_orders_and_trigger_events(
+        &self,
+        order_items: &[OrderItem],
+    ) -> Result<Vec<TabEvent>, TabError> {
+        let mut orders = Vec::new();
+        for order_item in order_items.iter() {
+            let menu_item = MenuItem {
+                menu_number: order_item.menu_number,
+                description: order_item.description.to_owned(),
+                price: order_item.price,
+            };
+            if self.opened {
+                if order_item.is_drink {
+                    orders.push(TabEvent::DrinkOrderPlaced { menu_item });
+                } else {
+                    orders.push(TabEvent::FoodOrderPlaced { menu_item });
+                }
+            } else {
+                return Err(TabError::TabNotOpened);
+            }
+        }
+
+        Ok(orders)
+    }
+
+    fn trigger_open_event(
+        &self,
+        waiter_id: &WaiterId,
+        table: usize,
+    ) -> Result<Vec<TabEvent>, TabError> {
+        Ok(vec![TabEvent::TabOpened {
+            waiter_id: *waiter_id,
+            table,
+        }])
     }
 }
 
