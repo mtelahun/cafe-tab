@@ -114,4 +114,5 @@ jobs:
         with:
           token:                1f0d13bd-4c68-4893-913d-c4de22a473c3
           fail_ci_if_error:     true
+          version:              0.16.0
 
