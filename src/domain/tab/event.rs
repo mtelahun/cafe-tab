@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::waiter_id::WaiterId;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct OrderItem {
     pub menu_number: usize,
     pub description: String,

@@ -4,7 +4,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{
-    command::TabCommand, error::TabError, event::TabEvent, services::TabServices, tab_id::TabId,
+    command::TabCommand,
+    error::TabError,
+    event::{OrderItem, TabEvent},
+    services::TabServices,
+    tab_id::TabId,
     waiter_id::WaiterId,
 };
 
@@ -12,7 +16,9 @@ use super::{
 pub struct Tab {
     id: TabId,
     table: usize,
+    opened: bool,
     waiter_id: WaiterId,
+    order_item: OrderItem,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -41,21 +47,24 @@ impl Aggregate for Tab {
             TabCommand::OpenTab { waiter_id, table } => {
                 return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
             }
-            TabCommand::OrderItem => return Err(TabError::TabNotOpened),
+            TabCommand::OrderItem { order_item } => {
+                if self.opened {
+                    return Ok(vec![TabEvent::ItemOrdered { order_item }]);
+                } else {
+                    return Err(TabError::TabNotOpened);
+                }
+            }
         };
     }
 
-    fn apply(&mut self, _event: Self::Event) {
-        todo!()
-    }
-}
-
-impl Tab {
-    pub fn new(waiter_id: WaiterId, table: usize) -> Self {
-        Tab {
-            id: TabId::new(),
-            table,
-            waiter_id,
+    fn apply(&mut self, event: Self::Event) {
+        match event {
+            TabEvent::TabOpened { waiter_id, table } => {
+                self.opened = true;
+                self.waiter_id = waiter_id;
+                self.table = table;
+            }
+            TabEvent::ItemOrdered { order_item } => self.order_item = order_item,
         }
     }
 }
@@ -82,7 +91,11 @@ pub mod tests {
         let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
 
         // Act
-        let result = executor.when(TabCommand::OrderItem).inspect_result();
+        let result = executor
+            .when(TabCommand::OrderItem {
+                order_item: OrderItem::default(),
+            })
+            .inspect_result();
 
         // Assert
         assert_eq!(result.err().unwrap(), TabError::TabNotOpened)
@@ -122,6 +135,12 @@ pub mod tests {
         // Arrange
         let waiter_id = WaiterId::new();
         let tab_services = TabServices {};
+        let order_item = OrderItem {
+            menu_number: 1,
+            description: "Steak".into(),
+            is_drink: false,
+            price: Decimal::from(10),
+        };
         let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
             waiter_id,
             table: 1,
@@ -129,7 +148,7 @@ pub mod tests {
 
         // Act
         let mut event = executor
-            .when(TabCommand::OrderItem)
+            .when(TabCommand::OrderItem { order_item })
             .inspect_result()
             .expect("failed to execute command: OrderItem");
 
