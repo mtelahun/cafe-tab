@@ -63,10 +63,15 @@ impl Tab {
 #[cfg(test)]
 pub mod tests {
     use cqrs_es::test::TestFramework;
+    use rust_decimal::Decimal;
 
     use crate::domain::tab::{
-        aggregate::Tab, command::TabCommand, error::TabError, event::TabEvent,
-        services::TabServices, waiter_id::WaiterId,
+        aggregate::Tab,
+        command::TabCommand,
+        error::TabError,
+        event::{OrderItem, TabEvent},
+        services::TabServices,
+        waiter_id::WaiterId,
     };
 
     #[test]
@@ -109,5 +114,39 @@ pub mod tests {
                 table: 1
             }
         )
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_opened_tab_when_order_food_then_ItemOrdered_event() {
+        // Arrange
+        let waiter_id = WaiterId::new();
+        let tab_services = TabServices {};
+        let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
+            waiter_id,
+            table: 1,
+        }]);
+
+        // Act
+        let mut event = executor
+            .when(TabCommand::OrderItem)
+            .inspect_result()
+            .expect("failed to execute command: OrderItem");
+
+        // Assert
+        assert_eq!(event.len(), 1);
+        let event = event.pop().unwrap();
+        assert_eq!(
+            event,
+            TabEvent::ItemOrdered {
+                order_item: OrderItem {
+                    menu_number: 1,
+                    description: "Steak".into(),
+                    is_drink: false,
+                    price: Decimal::from(10),
+                }
+            },
+            "ItemOrdered"
+        );
     }
 }
