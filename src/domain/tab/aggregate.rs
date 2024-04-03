@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::{
     command::TabCommand,
     error::TabError,
-    event::{DrinkItem, FoodItem, TabEvent},
+    event::{MenuItem, TabEvent},
     services::TabServices,
     tab_id::TabId,
     waiter_id::WaiterId,
@@ -18,8 +18,8 @@ pub struct Tab {
     table: usize,
     opened: bool,
     waiter_id: WaiterId,
-    food_item: FoodItem,
-    drink_item: DrinkItem,
+    food_item: MenuItem,
+    drink_item: MenuItem,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -49,21 +49,16 @@ impl Aggregate for Tab {
                 return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
             }
             TabCommand::PlaceOrder { order_item } => {
+                let menu_item = MenuItem {
+                    menu_number: order_item.menu_number,
+                    description: order_item.description,
+                    price: order_item.price,
+                };
                 if self.opened {
                     if order_item.is_drink {
-                        let drink_item = DrinkItem {
-                            menu_number: order_item.menu_number,
-                            description: order_item.description,
-                            price: order_item.price,
-                        };
-                        return Ok(vec![TabEvent::DrinkOrderPlaced { drink_item }]);
+                        return Ok(vec![TabEvent::DrinkOrderPlaced { menu_item }]);
                     } else {
-                        let food_item = FoodItem {
-                            menu_number: order_item.menu_number,
-                            description: order_item.description,
-                            price: order_item.price,
-                        };
-                        return Ok(vec![TabEvent::FoodOrderPlaced { food_item }]);
+                        return Ok(vec![TabEvent::FoodOrderPlaced { menu_item }]);
                     }
                 } else {
                     return Err(TabError::TabNotOpened);
@@ -79,8 +74,8 @@ impl Aggregate for Tab {
                 self.waiter_id = waiter_id;
                 self.table = table;
             }
-            TabEvent::FoodOrderPlaced { food_item } => self.food_item = food_item,
-            TabEvent::DrinkOrderPlaced { drink_item } => self.drink_item = drink_item,
+            TabEvent::FoodOrderPlaced { menu_item } => self.food_item = menu_item,
+            TabEvent::DrinkOrderPlaced { menu_item } => self.drink_item = menu_item,
         }
     }
 }
@@ -94,7 +89,7 @@ pub mod tests {
         aggregate::Tab,
         command::{OrderItem, TabCommand},
         error::TabError,
-        event::{DrinkItem, FoodItem, TabEvent},
+        event::{MenuItem, TabEvent},
         services::TabServices,
         waiter_id::WaiterId,
     };
@@ -174,7 +169,7 @@ pub mod tests {
         assert_eq!(
             event,
             TabEvent::FoodOrderPlaced {
-                food_item: FoodItem {
+                menu_item: MenuItem {
                     menu_number: 1,
                     description: "Steak".into(),
                     price: Decimal::from(10),
@@ -213,7 +208,7 @@ pub mod tests {
         assert_eq!(
             event,
             TabEvent::DrinkOrderPlaced {
-                drink_item: DrinkItem {
+                menu_item: MenuItem {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
                     price: Decimal::from(3),
