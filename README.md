@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/mtelahun/cafe-tab/branch/main/graph/badge.svg?token=A1P9I5E2LU)](https://codecov.io/gh/mtelahun/cafe-tab)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
-From [https://cqrs.nu/](Getting Started with CQRS)
+From [Getting Started with CQRS](https://cqrs.nu/)
 
 ## The Domain
 
