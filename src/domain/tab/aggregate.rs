@@ -18,8 +18,8 @@ pub struct Tab {
     table: usize,
     opened: bool,
     waiter_id: WaiterId,
-    food_item: MenuItem,
-    drink_item: MenuItem,
+    food_items: Vec<MenuItem>,
+    drink_items: Vec<MenuItem>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -63,11 +63,13 @@ impl Aggregate for Tab {
                 self.opened = true;
                 self.waiter_id = waiter_id;
                 self.table = table;
+                self.drink_items = Vec::new();
+                self.food_items = Vec::new();
             }
             #[allow(unused_variables)]
-            TabEvent::FoodOrderPlaced { id, menu_item } => self.food_item = menu_item,
+            TabEvent::FoodOrderPlaced { id, menu_item } => self.food_items.push(menu_item),
             #[allow(unused_variables)]
-            TabEvent::DrinkOrderPlaced { id, menu_item } => self.drink_item = menu_item,
+            TabEvent::DrinkOrderPlaced { id, menu_item } => self.drink_items.push(menu_item),
         }
     }
 }
