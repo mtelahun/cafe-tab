@@ -108,11 +108,11 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           args: '--ignore-tests'
+          version:              0.22.0
       
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
           token:                1f0d13bd-4c68-4893-913d-c4de22a473c3
           fail_ci_if_error:     true
-          version:              0.16.0
 
