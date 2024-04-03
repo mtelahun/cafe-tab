@@ -15,7 +15,7 @@ pub struct OrderItem {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum TabEvent {
     TabOpened { waiter_id: WaiterId, table: usize },
-    ItemOrdered { order_item: OrderItem },
+    OrderPlaced { order_item: OrderItem },
 }
 
 impl DomainEvent for TabEvent {

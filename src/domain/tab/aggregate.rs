@@ -47,9 +47,9 @@ impl Aggregate for Tab {
             TabCommand::OpenTab { waiter_id, table } => {
                 return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
             }
-            TabCommand::OrderItem { order_item } => {
+            TabCommand::PlaceOrder { order_item } => {
                 if self.opened {
-                    return Ok(vec![TabEvent::ItemOrdered { order_item }]);
+                    return Ok(vec![TabEvent::OrderPlaced { order_item }]);
                 } else {
                     return Err(TabError::TabNotOpened);
                 }
@@ -64,7 +64,7 @@ impl Aggregate for Tab {
                 self.waiter_id = waiter_id;
                 self.table = table;
             }
-            TabEvent::ItemOrdered { order_item } => self.order_item = order_item,
+            TabEvent::OrderPlaced { order_item } => self.order_item = order_item,
         }
     }
 }
@@ -92,7 +92,7 @@ pub mod tests {
 
         // Act
         let result = executor
-            .when(TabCommand::OrderItem {
+            .when(TabCommand::PlaceOrder {
                 order_item: OrderItem::default(),
             })
             .inspect_result();
@@ -148,7 +148,7 @@ pub mod tests {
 
         // Act
         let mut event = executor
-            .when(TabCommand::OrderItem { order_item })
+            .when(TabCommand::PlaceOrder { order_item })
             .inspect_result()
             .expect("failed to execute command: OrderItem");
 
@@ -157,7 +157,7 @@ pub mod tests {
         let event = event.pop().unwrap();
         assert_eq!(
             event,
-            TabEvent::ItemOrdered {
+            TabEvent::OrderPlaced {
                 order_item: OrderItem {
                     menu_number: 1,
                     description: "Steak".into(),
@@ -188,7 +188,7 @@ pub mod tests {
 
         // Act
         let mut event = executor
-            .when(TabCommand::OrderItem { order_item })
+            .when(TabCommand::PlaceOrder { order_item })
             .inspect_result()
             .expect("failed to execute command: OrderItem");
 
@@ -197,7 +197,7 @@ pub mod tests {
         let event = event.pop().unwrap();
         assert_eq!(
             event,
-            TabEvent::ItemOrdered {
+            TabEvent::OrderPlaced {
                 order_item: OrderItem {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
