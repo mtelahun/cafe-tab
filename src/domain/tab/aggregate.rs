@@ -37,14 +37,12 @@ impl Aggregate for Tab {
         command: Self::Command,
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
-        let result = match command {
+        match command {
             TabCommand::OpenTab { waiter_id, table } => {
-                vec![TabEvent::TabOpened { waiter_id, table }]
+                return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
             }
             TabCommand::OrderItem => return Err(TabError::TabNotOpened),
         };
-
-        Ok(result)
     }
 
     fn apply(&mut self, _event: Self::Event) {
