@@ -41,6 +41,7 @@ impl Aggregate for Tab {
             TabCommand::OpenTab { waiter_id, table } => {
                 vec![TabEvent::TabOpened { waiter_id, table }]
             }
+            TabCommand::OrderItem => todo!(),
         };
 
         Ok(result)
@@ -66,9 +67,23 @@ pub mod tests {
     use cqrs_es::test::TestFramework;
 
     use crate::domain::tab::{
-        aggregate::Tab, command::TabCommand, event::TabEvent, services::TabServices,
-        waiter_id::WaiterId,
+        aggregate::Tab, command::TabCommand, error::TabError, event::TabEvent,
+        services::TabServices, waiter_id::WaiterId,
     };
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_unopened_tab_when_any_command_then_TabNotOpened_error() {
+        // Arrange
+        let tab_services = TabServices {};
+        let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
+
+        // Act
+        let result = executor.when(TabCommand::OrderItem).inspect_result();
+
+        // Assert
+        assert_eq!(result.err().unwrap(), TabError::TabNotOpened)
+    }
 
     #[test]
     #[allow(non_snake_case)]

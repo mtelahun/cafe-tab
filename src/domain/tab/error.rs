@@ -3,6 +3,7 @@ pub enum TabError {
     CannotCancelServedItem,
     TabHasUnservedItems,
     MustPayEnough,
+    TabNotOpened,
 }
 
 impl std::error::Error for TabError {}
@@ -13,6 +14,7 @@ impl std::fmt::Display for TabError {
             TabError::CannotCancelServedItem => "cannot cancel served item",
             TabError::TabHasUnservedItems => "tab has unserved items",
             TabError::MustPayEnough => "payment amount is not enough",
+            TabError::TabNotOpened => "tab is not open",
         };
 
         write!(f, "tab error: {msg}")
