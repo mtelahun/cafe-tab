@@ -2,7 +2,9 @@ use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Copy, Clone, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub struct WaiterId(uuid::Uuid);
 
 impl WaiterId {

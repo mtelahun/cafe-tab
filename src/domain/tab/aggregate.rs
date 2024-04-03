@@ -34,10 +34,16 @@ impl Aggregate for Tab {
 
     async fn handle(
         &self,
-        _command: Self::Command,
+        command: Self::Command,
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
-        todo!()
+        let result = match command {
+            TabCommand::OpenTab { waiter_id, table } => {
+                vec![TabEvent::TabOpened { waiter_id, table }]
+            }
+        };
+
+        Ok(result)
     }
 
     fn apply(&mut self, _event: Self::Event) {
@@ -60,7 +66,8 @@ pub mod tests {
     use cqrs_es::test::TestFramework;
 
     use crate::domain::tab::{
-        aggregate::Tab, command::TabCommand, event::TabEvent, services::TabServices, waiter_id::WaiterId
+        aggregate::Tab, command::TabCommand, event::TabEvent, services::TabServices,
+        waiter_id::WaiterId,
     };
 
     #[test]
@@ -72,13 +79,22 @@ pub mod tests {
         let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
 
         // Act
-        let result = executor.when(TabCommand::OpenTab{ waiter_id, table: 1});
+        let result = executor.when(TabCommand::OpenTab {
+            waiter_id,
+            table: 1,
+        });
         let mut event = result
             .inspect_result()
             .expect("failed to execute command: OpenTab");
 
         // Assert
         let event = event.pop().unwrap();
-        assert_eq!(event, TabEvent::TabOpened { waiter_id, table: 1 })
+        assert_eq!(
+            event,
+            TabEvent::TabOpened {
+                waiter_id,
+                table: 1
+            }
+        )
     }
 }
