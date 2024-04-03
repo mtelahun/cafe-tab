@@ -2,7 +2,7 @@ use cqrs_es::DomainEvent;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use super::waiter_id::WaiterId;
+use super::{tab_id::TabId, waiter_id::WaiterId};
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct MenuItem {
@@ -13,9 +13,19 @@ pub struct MenuItem {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum TabEvent {
-    TabOpened { waiter_id: WaiterId, table: usize },
-    FoodOrderPlaced { menu_item: MenuItem },
-    DrinkOrderPlaced { menu_item: MenuItem },
+    TabOpened {
+        id: TabId,
+        waiter_id: WaiterId,
+        table: usize,
+    },
+    FoodOrderPlaced {
+        id: TabId,
+        menu_item: MenuItem,
+    },
+    DrinkOrderPlaced {
+        id: TabId,
+        menu_item: MenuItem,
+    },
 }
 
 impl DomainEvent for TabEvent {

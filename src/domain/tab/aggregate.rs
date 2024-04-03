@@ -54,13 +54,20 @@ impl Aggregate for Tab {
 
     fn apply(&mut self, event: Self::Event) {
         match event {
-            TabEvent::TabOpened { waiter_id, table } => {
+            TabEvent::TabOpened {
+                id,
+                waiter_id,
+                table,
+            } => {
+                self.id = id;
                 self.opened = true;
                 self.waiter_id = waiter_id;
                 self.table = table;
             }
-            TabEvent::FoodOrderPlaced { menu_item } => self.food_item = menu_item,
-            TabEvent::DrinkOrderPlaced { menu_item } => self.drink_item = menu_item,
+            #[allow(unused_variables)]
+            TabEvent::FoodOrderPlaced { id, menu_item } => self.food_item = menu_item,
+            #[allow(unused_variables)]
+            TabEvent::DrinkOrderPlaced { id, menu_item } => self.drink_item = menu_item,
         }
     }
 }
@@ -79,9 +86,15 @@ impl Tab {
             };
             if self.opened {
                 if order_item.is_drink {
-                    orders.push(TabEvent::DrinkOrderPlaced { menu_item });
+                    orders.push(TabEvent::DrinkOrderPlaced {
+                        id: self.id,
+                        menu_item,
+                    });
                 } else {
-                    orders.push(TabEvent::FoodOrderPlaced { menu_item });
+                    orders.push(TabEvent::FoodOrderPlaced {
+                        id: self.id,
+                        menu_item,
+                    });
                 }
             } else {
                 return Err(TabError::TabNotOpened);
@@ -97,6 +110,7 @@ impl Tab {
         table: usize,
     ) -> Result<Vec<TabEvent>, TabError> {
         Ok(vec![TabEvent::TabOpened {
+            id: TabId::new(),
             waiter_id: *waiter_id,
             table,
         }])
@@ -114,6 +128,7 @@ pub mod tests {
         error::TabError,
         event::{MenuItem, TabEvent},
         services::TabServices,
+        tab_id::TabId,
         waiter_id::WaiterId,
     };
 
@@ -139,13 +154,13 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_tab_with_no_events_when_OpenTab_command_then_TabOpened_event() {
         // Arrange
-        let waiter_id = WaiterId::new();
+        let expected_waiter_id = WaiterId::new();
         let tab_services = TabServices {};
         let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
 
         // Act
         let result = executor.when(TabCommand::OpenTab {
-            waiter_id,
+            waiter_id: expected_waiter_id,
             table: 1,
         });
         let mut event = result
@@ -153,20 +168,27 @@ pub mod tests {
             .expect("failed to execute command: OpenTab");
 
         // Assert
-        let event = event.pop().unwrap();
-        assert_eq!(
-            event,
+        if let Some((tid, wid, table_num)) = match event.pop().unwrap() {
             TabEvent::TabOpened {
+                id,
                 waiter_id,
-                table: 1
-            }
-        )
+                table,
+            } => Some((id, waiter_id, table)),
+            _ => None,
+        } {
+            assert!(tid != TabId::default());
+            assert_eq!(wid, expected_waiter_id);
+            assert_eq!(table_num, 1);
+        } else {
+            assert!(false, "TabOpened event")
+        }
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_opened_tab_when_order_food_then_ItemOrdered_event() {
         // Arrange
+        let tab_id = TabId::new();
         let waiter_id = WaiterId::new();
         let tab_services = TabServices {};
         let order_items = vec![OrderItem {
@@ -176,6 +198,7 @@ pub mod tests {
             price: Decimal::from(10),
         }];
         let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
+            id: tab_id,
             waiter_id,
             table: 1,
         }]);
@@ -192,6 +215,7 @@ pub mod tests {
         assert_eq!(
             event,
             TabEvent::FoodOrderPlaced {
+                id: tab_id,
                 menu_item: MenuItem {
                     menu_number: 1,
                     description: "Steak".into(),
@@ -206,6 +230,7 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_opened_tab_when_order_1_drink_then_ItemOrdered_event() {
         // Arrange
+        let tab_id = TabId::new();
         let waiter_id = WaiterId::new();
         let tab_services = TabServices {};
         let order_items = vec![OrderItem {
@@ -215,6 +240,7 @@ pub mod tests {
             price: Decimal::from(3),
         }];
         let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
+            id: tab_id,
             waiter_id,
             table: 1,
         }]);
@@ -231,6 +257,7 @@ pub mod tests {
         assert_eq!(
             event,
             TabEvent::DrinkOrderPlaced {
+                id: tab_id,
                 menu_item: MenuItem {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
@@ -245,6 +272,7 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_opened_tab_when_order_multiple_items_then_multiple_OrderPlaced_events() {
         // Arrange
+        let tab_id = TabId::new();
         let waiter_id = WaiterId::new();
         let tab_services = TabServices {};
         let order_items = vec![
@@ -262,6 +290,7 @@ pub mod tests {
             },
         ];
         let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
+            id: tab_id,
             waiter_id,
             table: 1,
         }]);
@@ -277,6 +306,7 @@ pub mod tests {
         assert_eq!(
             event[0],
             TabEvent::FoodOrderPlaced {
+                id: tab_id,
                 menu_item: MenuItem {
                     menu_number: 1,
                     description: "Steak".into(),
@@ -288,6 +318,7 @@ pub mod tests {
         assert_eq!(
             event[1],
             TabEvent::DrinkOrderPlaced {
+                id: tab_id,
                 menu_item: MenuItem {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
