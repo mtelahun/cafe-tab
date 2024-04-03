@@ -5,17 +5,16 @@ use serde::{Deserialize, Serialize};
 use super::waiter_id::WaiterId;
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct OrderItem {
+pub struct FoodItem {
     pub menu_number: usize,
     pub description: String,
-    pub is_drink: bool,
     pub price: Decimal,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum TabEvent {
     TabOpened { waiter_id: WaiterId, table: usize },
-    OrderPlaced { order_item: OrderItem },
+    FoodOrderPlaced { food_item: FoodItem },
 }
 
 impl DomainEvent for TabEvent {

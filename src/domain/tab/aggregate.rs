@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::{
     command::TabCommand,
     error::TabError,
-    event::{OrderItem, TabEvent},
+    event::{FoodItem, TabEvent},
     services::TabServices,
     tab_id::TabId,
     waiter_id::WaiterId,
@@ -18,7 +18,7 @@ pub struct Tab {
     table: usize,
     opened: bool,
     waiter_id: WaiterId,
-    order_item: OrderItem,
+    food_item: FoodItem,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -48,8 +48,13 @@ impl Aggregate for Tab {
                 return Ok(vec![TabEvent::TabOpened { waiter_id, table }])
             }
             TabCommand::PlaceOrder { order_item } => {
+                let food_item = FoodItem {
+                    menu_number: order_item.menu_number,
+                    description: order_item.description,
+                    price: order_item.price,
+                };
                 if self.opened {
-                    return Ok(vec![TabEvent::OrderPlaced { order_item }]);
+                    return Ok(vec![TabEvent::FoodOrderPlaced { food_item }]);
                 } else {
                     return Err(TabError::TabNotOpened);
                 }
@@ -64,7 +69,7 @@ impl Aggregate for Tab {
                 self.waiter_id = waiter_id;
                 self.table = table;
             }
-            TabEvent::OrderPlaced { order_item } => self.order_item = order_item,
+            TabEvent::FoodOrderPlaced { food_item } => self.food_item = food_item,
         }
     }
 }
@@ -76,9 +81,9 @@ pub mod tests {
 
     use crate::domain::tab::{
         aggregate::Tab,
-        command::TabCommand,
+        command::{OrderItem, TabCommand},
         error::TabError,
-        event::{OrderItem, TabEvent},
+        event::{FoodItem, TabEvent},
         services::TabServices,
         waiter_id::WaiterId,
     };
@@ -158,7 +163,7 @@ pub mod tests {
         assert_eq!(
             event,
             TabEvent::FoodOrderPlaced {
-                order_item: FoodOrder {
+                food_item: FoodItem {
                     menu_number: 1,
                     description: "Steak".into(),
                     price: Decimal::from(10),
