@@ -168,4 +168,44 @@ pub mod tests {
             "ItemOrdered"
         );
     }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_opened_tab_when_order_1_drink_then_ItemOrdered_event() {
+        // Arrange
+        let waiter_id = WaiterId::new();
+        let tab_services = TabServices {};
+        let order_item = OrderItem {
+            menu_number: 2,
+            description: "Coca-Cola".into(),
+            is_drink: true,
+            price: Decimal::from(3),
+        };
+        let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
+            waiter_id,
+            table: 1,
+        }]);
+
+        // Act
+        let mut event = executor
+            .when(TabCommand::OrderItem { order_item })
+            .inspect_result()
+            .expect("failed to execute command: OrderItem");
+
+        // Assert
+        assert_eq!(event.len(), 1);
+        let event = event.pop().unwrap();
+        assert_eq!(
+            event,
+            TabEvent::ItemOrdered {
+                order_item: OrderItem {
+                    menu_number: 1,
+                    description: "Coca-Cola".into(),
+                    is_drink: true,
+                    price: Decimal::from(3),
+                }
+            },
+            "ItemOrdered"
+        );
+    }
 }
