@@ -41,7 +41,7 @@ impl Aggregate for Tab {
             TabCommand::OpenTab { waiter_id, table } => {
                 vec![TabEvent::TabOpened { waiter_id, table }]
             }
-            TabCommand::OrderItem => todo!(),
+            TabCommand::OrderItem => return Err(TabError::TabNotOpened),
         };
 
         Ok(result)
