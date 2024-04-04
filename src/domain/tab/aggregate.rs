@@ -126,7 +126,7 @@ impl Tab {
             let menu_numbers_ordered: Vec<usize> =
                 self.drink_items.iter().map(|i| i.menu_number).collect();
             if !menu_numbers_ordered.contains(&menu_number) {
-                return Err(TabError::DrinkWasNotServed { menu_number });
+                return Err(TabError::DrinkNotOutstanding { menu_number });
             }
             result.push(TabEvent::DrinkServed {
                 id: self.id,
@@ -429,7 +429,7 @@ pub mod tests {
         // Assert
         assert_eq!(
             result.err().unwrap(),
-            TabError::DrinkWasNotServed { menu_number: 12 }
+            TabError::DrinkNotOutstanding { menu_number: 12 }
         )
     }
 

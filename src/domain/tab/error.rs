@@ -4,7 +4,7 @@ pub enum TabError {
     TabHasUnservedItems,
     MustPayEnough,
     TabNotOpened,
-    DrinkWasNotServed { menu_number: usize },
+    DrinkNotOutstanding { menu_number: usize },
 }
 
 impl std::error::Error for TabError {}
@@ -16,7 +16,7 @@ impl std::fmt::Display for TabError {
             TabError::TabHasUnservedItems => String::from("tab has unserved items"),
             TabError::MustPayEnough => String::from("payment amount is not enough"),
             TabError::TabNotOpened => String::from("tab is not open"),
-            TabError::DrinkWasNotServed { menu_number } => {
+            TabError::DrinkNotOutstanding { menu_number } => {
                 format!("drink was not served: menu number {menu_number}")
             }
         };
