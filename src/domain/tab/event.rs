@@ -26,6 +26,10 @@ pub enum TabEvent {
         id: TabId,
         menu_item: MenuItem,
     },
+    DrinkServed {
+        id: TabId,
+        menu_number: usize,
+    },
 }
 
 impl DomainEvent for TabEvent {

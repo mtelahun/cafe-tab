@@ -1,12 +1,13 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use super::waiter_id::WaiterId;
+use super::{tab_id::TabId, waiter_id::WaiterId};
 
 #[derive(Debug, Deserialize)]
 pub enum TabCommand {
     OpenTab { waiter_id: WaiterId, table: usize },
     PlaceOrder { order_items: Vec<OrderItem> },
+    MarkDrinksServed { id: TabId, menu_numbers: Vec<usize> },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]

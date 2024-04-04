@@ -330,4 +330,45 @@ pub mod tests {
             "DrinkOrderPlaced"
         );
     }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_drinks_ordered_when_MarkDrinksServed_command_then_DrinkServed_event() {
+        // Arrange
+        let tab_id = TabId::new();
+        let waiter_id = WaiterId::new();
+        let tab_services = TabServices {};
+        let executor = TestFramework::<Tab>::with(tab_services).given(vec![
+            TabEvent::TabOpened {
+                id: tab_id,
+                waiter_id,
+                table: 1,
+            },
+            TabEvent::DrinkOrderPlaced {
+                id: tab_id,
+                menu_item: MenuItem {
+                    menu_number: 2,
+                    description: "Coca-Cola".into(),
+                    price: Decimal::from(3),
+                },
+            },
+        ]);
+
+        let event = executor
+            .when(TabCommand::MarkDrinksServed {
+                id: tab_id,
+                menu_numbers: vec![2],
+            })
+            .inspect_result()
+            .expect("command MarkDrinkServed failed");
+
+        // Assert
+        assert_eq!(
+            event[0],
+            TabEvent::DrinkServed {
+                id: tab_id,
+                menu_number: 2
+            }
+        );
+    }
 }
