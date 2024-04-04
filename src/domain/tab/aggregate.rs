@@ -125,7 +125,9 @@ impl Tab {
         for menu_number in menu_numbers {
             let menu_numbers_ordered: Vec<usize> =
                 self.drink_items.iter().map(|i| i.menu_number).collect();
-            if !menu_numbers_ordered.contains(&menu_number) {
+            if !menu_numbers_ordered.contains(&menu_number)
+                || self.drinks_served.contains(&menu_number)
+            {
                 return Err(TabError::DrinkNotOutstanding { menu_number });
             }
             result.push(TabEvent::DrinkServed {
