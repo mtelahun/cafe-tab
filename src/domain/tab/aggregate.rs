@@ -395,6 +395,39 @@ pub mod tests {
         );
     }
 
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_drinks_ordered_when_MarkDrinksServed_command_uses_wrong_menu_number_then_error(
+    ) {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![TabEvent::DrinkOrderPlaced {
+                id: tab_id,
+                menu_item: MenuItem {
+                    menu_number: 2,
+                    description: "Coca-Cola".into(),
+                    price: Decimal::from(3),
+                },
+            }]),
+        );
+
+        // Act
+        let result = executor
+            .when(TabCommand::MarkDrinksServed {
+                id: tab_id,
+                menu_numbers: vec![2],
+            })
+            .inspect_result();
+
+        // Assert
+        assert_eq!(
+            result.err().unwrap(),
+            TabError::DrinkWasNotServed { menu_number: 12 }
+        )
+    }
+
     fn arrange_executor(
         tab_id: TabId,
         given_events: Option<Vec<TabEvent>>,
