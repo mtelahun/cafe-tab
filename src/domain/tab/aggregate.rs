@@ -46,25 +46,20 @@ impl Aggregate for Tab {
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
-            TabCommand::OpenTab { waiter_id, table } => self.trigger_open_event(&waiter_id, table),
-            TabCommand::PlaceOrder { order_items } => {
-                self.read_orders_and_trigger_events(&order_items)
+            TabCommand::OpenTab { waiter_id, table } => {
+                self.trigger_open_tab_event(&waiter_id, table)
             }
-            TabCommand::MarkDrinksServed {
-                id: _,
-                menu_numbers,
-            } => {
+            TabCommand::PlaceOrder { order_items } => {
                 if !self.opened {
                     return Err(TabError::TabNotOpened);
                 }
-                let mut result = Vec::new();
-                for menu_number in menu_numbers {
-                    result.push(TabEvent::DrinkServed {
-                        id: self.id,
-                        menu_number,
-                    });
+                self.read_orders_and_trigger_order_placed_events(&order_items)
+            }
+            TabCommand::MarkDrinksServed { id, menu_numbers } => {
+                if !self.opened {
+                    return Err(TabError::TabNotOpened);
                 }
-                return Ok(result);
+                self.trigger_drink_served_events(id, menu_numbers)
             }
         }
     }
@@ -94,7 +89,7 @@ impl Aggregate for Tab {
 }
 
 impl Tab {
-    fn read_orders_and_trigger_events(
+    fn read_orders_and_trigger_order_placed_events(
         &self,
         order_items: &[OrderItem],
     ) -> Result<Vec<TabEvent>, TabError> {
@@ -105,27 +100,39 @@ impl Tab {
                 description: order_item.description.to_owned(),
                 price: order_item.price,
             };
-            if self.opened {
-                if order_item.is_drink {
-                    orders.push(TabEvent::DrinkOrderPlaced {
-                        id: self.id,
-                        menu_item,
-                    });
-                } else {
-                    orders.push(TabEvent::FoodOrderPlaced {
-                        id: self.id,
-                        menu_item,
-                    });
-                }
+            if order_item.is_drink {
+                orders.push(TabEvent::DrinkOrderPlaced {
+                    id: self.id,
+                    menu_item,
+                });
             } else {
-                return Err(TabError::TabNotOpened);
+                orders.push(TabEvent::FoodOrderPlaced {
+                    id: self.id,
+                    menu_item,
+                });
             }
         }
 
         Ok(orders)
     }
 
-    fn trigger_open_event(
+    fn trigger_drink_served_events(
+        &self,
+        _id: TabId,
+        menu_numbers: Vec<usize>,
+    ) -> Result<Vec<TabEvent>, TabError> {
+        let mut result = Vec::new();
+        for menu_number in menu_numbers {
+            result.push(TabEvent::DrinkServed {
+                id: self.id,
+                menu_number,
+            });
+        }
+
+        Ok(result)
+    }
+
+    fn trigger_open_tab_event(
         &self,
         waiter_id: &WaiterId,
         table: usize,
