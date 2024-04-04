@@ -20,6 +20,7 @@ pub struct Tab {
     waiter_id: WaiterId,
     food_items: Vec<MenuItem>,
     drink_items: Vec<MenuItem>,
+    drinks_served: Vec<usize>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -49,6 +50,19 @@ impl Aggregate for Tab {
             TabCommand::PlaceOrder { order_items } => {
                 self.read_orders_and_trigger_events(&order_items)
             }
+            TabCommand::MarkDrinksServed {
+                id: _,
+                menu_numbers,
+            } => {
+                let mut result = Vec::new();
+                for menu_number in menu_numbers {
+                    result.push(TabEvent::DrinkServed {
+                        id: self.id,
+                        menu_number,
+                    });
+                }
+                return Ok(result);
+            }
         }
     }
 
@@ -70,6 +84,7 @@ impl Aggregate for Tab {
             TabEvent::FoodOrderPlaced { id, menu_item } => self.food_items.push(menu_item),
             #[allow(unused_variables)]
             TabEvent::DrinkOrderPlaced { id, menu_item } => self.drink_items.push(menu_item),
+            TabEvent::DrinkServed { id: _, menu_number } => self.drinks_served.push(menu_number),
         }
     }
 }
@@ -354,6 +369,7 @@ pub mod tests {
             },
         ]);
 
+        // Act
         let event = executor
             .when(TabCommand::MarkDrinksServed {
                 id: tab_id,
@@ -363,6 +379,7 @@ pub mod tests {
             .expect("command MarkDrinkServed failed");
 
         // Assert
+        assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
             TabEvent::DrinkServed {
