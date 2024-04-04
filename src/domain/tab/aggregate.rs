@@ -73,6 +73,7 @@ impl Aggregate for Tab {
                 waiter_id,
                 table,
             } => {
+                eprintln!("Tab opened: {id}");
                 self.id = id;
                 self.opened = true;
                 self.waiter_id = waiter_id;
@@ -136,7 +137,7 @@ impl Tab {
 
 #[cfg(test)]
 pub mod tests {
-    use cqrs_es::test::TestFramework;
+    use cqrs_es::test::{AggregateTestExecutor, TestFramework};
     use rust_decimal::Decimal;
 
     use crate::domain::tab::{
@@ -206,19 +207,13 @@ pub mod tests {
     fn given_opened_tab_when_order_food_then_ItemOrdered_event() {
         // Arrange
         let tab_id = TabId::new();
-        let waiter_id = WaiterId::new();
-        let tab_services = TabServices {};
         let order_items = vec![OrderItem {
             menu_number: 1,
             description: "Steak".into(),
             is_drink: false,
             price: Decimal::from(10),
         }];
-        let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
-            id: tab_id,
-            waiter_id,
-            table: 1,
-        }]);
+        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
         // Act
         let mut event = executor
@@ -248,19 +243,13 @@ pub mod tests {
     fn given_opened_tab_when_order_1_drink_then_ItemOrdered_event() {
         // Arrange
         let tab_id = TabId::new();
-        let waiter_id = WaiterId::new();
-        let tab_services = TabServices {};
         let order_items = vec![OrderItem {
             menu_number: 2,
             description: "Coca-Cola".into(),
             is_drink: true,
             price: Decimal::from(3),
         }];
-        let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
-            id: tab_id,
-            waiter_id,
-            table: 1,
-        }]);
+        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
         // Act
         let mut event = executor
@@ -287,11 +276,9 @@ pub mod tests {
 
     #[test]
     #[allow(non_snake_case)]
-    fn given_opened_tab_when_order_multiple_items_then_multiple_OrderPlaced_events() {
+    fn given_open_tab_when_order_multiple_items_then_multiple_OrderPlaced_events() {
         // Arrange
         let tab_id = TabId::new();
-        let waiter_id = WaiterId::new();
-        let tab_services = TabServices {};
         let order_items = vec![
             OrderItem {
                 menu_number: 1,
@@ -306,11 +293,7 @@ pub mod tests {
                 price: Decimal::from(3),
             },
         ];
-        let executor = TestFramework::<Tab>::with(tab_services).given(vec![TabEvent::TabOpened {
-            id: tab_id,
-            waiter_id,
-            table: 1,
-        }]);
+        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
         // Act
         let event = executor
@@ -351,23 +334,17 @@ pub mod tests {
     fn given_open_tab_and_drinks_ordered_when_MarkDrinksServed_command_then_DrinkServed_event() {
         // Arrange
         let tab_id = TabId::new();
-        let waiter_id = WaiterId::new();
-        let tab_services = TabServices {};
-        let executor = TestFramework::<Tab>::with(tab_services).given(vec![
-            TabEvent::TabOpened {
-                id: tab_id,
-                waiter_id,
-                table: 1,
-            },
-            TabEvent::DrinkOrderPlaced {
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![TabEvent::DrinkOrderPlaced {
                 id: tab_id,
                 menu_item: MenuItem {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
                     price: Decimal::from(3),
                 },
-            },
-        ]);
+            }]),
+        );
 
         // Act
         let event = executor
@@ -387,5 +364,27 @@ pub mod tests {
                 menu_number: 2
             }
         );
+    }
+
+    fn arrange_executor(
+        tab_id: TabId,
+        given_events: Option<Vec<TabEvent>>,
+    ) -> AggregateTestExecutor<Tab> {
+        let waiter_id = WaiterId::new();
+        let tab_services = TabServices {};
+
+        match given_events {
+            Some(mut events) => {
+                let mut all_events = Vec::new();
+                all_events.push(TabEvent::TabOpened {
+                    id: tab_id,
+                    waiter_id,
+                    table: 1,
+                });
+                all_events.append(&mut events);
+                TestFramework::<Tab>::with(tab_services).given(all_events)
+            }
+            None => TestFramework::<Tab>::with(tab_services).given_no_previous_events(),
+        }
     }
 }
