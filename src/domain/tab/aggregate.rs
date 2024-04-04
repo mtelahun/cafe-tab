@@ -54,6 +54,9 @@ impl Aggregate for Tab {
                 id: _,
                 menu_numbers,
             } => {
+                if !self.opened {
+                    return Err(TabError::TabNotOpened);
+                }
                 let mut result = Vec::new();
                 for menu_number in menu_numbers {
                     result.push(TabEvent::DrinkServed {
@@ -152,7 +155,7 @@ pub mod tests {
 
     #[test]
     #[allow(non_snake_case)]
-    fn given_unopened_tab_when_any_command_then_TabNotOpened_error() {
+    fn given_unopened_tab_when_PlaceOrder_command_then_TabNotOpened_error() {
         // Arrange
         let tab_services = TabServices {};
         let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
@@ -161,6 +164,25 @@ pub mod tests {
         let result = executor
             .when(TabCommand::PlaceOrder {
                 order_items: vec![OrderItem::default()],
+            })
+            .inspect_result();
+
+        // Assert
+        assert_eq!(result.err().unwrap(), TabError::TabNotOpened)
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_unopened_tab_when_MarkDrinksServed_command_then_TabNotOpened_error() {
+        // Arrange
+        let tab_services = TabServices {};
+        let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
+
+        // Act
+        let result = executor
+            .when(TabCommand::MarkDrinksServed {
+                id: TabId::new(),
+                menu_numbers: vec![2],
             })
             .inspect_result();
 
