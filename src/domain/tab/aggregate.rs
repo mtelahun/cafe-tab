@@ -123,6 +123,11 @@ impl Tab {
     ) -> Result<Vec<TabEvent>, TabError> {
         let mut result = Vec::new();
         for menu_number in menu_numbers {
+            let menu_numbers_ordered: Vec<usize> =
+                self.drink_items.iter().map(|i| i.menu_number).collect();
+            if !menu_numbers_ordered.contains(&menu_number) {
+                return Err(TabError::DrinkWasNotServed { menu_number });
+            }
             result.push(TabEvent::DrinkServed {
                 id: self.id,
                 menu_number,
@@ -417,7 +422,7 @@ pub mod tests {
         let result = executor
             .when(TabCommand::MarkDrinksServed {
                 id: tab_id,
-                menu_numbers: vec![2],
+                menu_numbers: vec![12],
             })
             .inspect_result();
 
