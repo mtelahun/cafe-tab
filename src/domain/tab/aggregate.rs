@@ -473,6 +473,58 @@ pub mod tests {
         )
     }
 
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_one_drink_ordered_twice_when_MarkDrinksServed_twice_then_DrinkServed_event_twice(
+    ) {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![
+                TabEvent::DrinkOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 2,
+                        description: "Coca-Cola".into(),
+                        price: Decimal::from(3),
+                    },
+                },
+                TabEvent::DrinkOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 2,
+                        description: "Coca-Cola".into(),
+                        price: Decimal::from(3),
+                    },
+                },
+                TabEvent::DrinkServed {
+                    id: tab_id,
+                    menu_number: 2,
+                },
+            ]),
+        );
+
+        // Act
+        let event = executor
+            .when(TabCommand::MarkDrinksServed {
+                id: tab_id,
+                menu_numbers: vec![2],
+            })
+            .inspect_result()
+            .expect("command MarkDrinkServed failed");
+
+        // Assert
+        assert_eq!(event.len(), 1);
+        assert_eq!(
+            event[0],
+            TabEvent::DrinkServed {
+                id: tab_id,
+                menu_number: 2
+            }
+        );
+    }
+
     fn arrange_executor(
         tab_id: TabId,
         given_events: Option<Vec<TabEvent>>,
