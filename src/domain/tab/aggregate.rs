@@ -96,12 +96,12 @@ impl Tab {
         }
     }
 
-    fn apply_food_prepared(&mut self, _id: TabId, _menu_number: usize) {
-        // if let Some(qty) = self.foods_prepared.get_mut(&menu_number) {
-        //     *qty += 1;
-        // } else {
-        //     self.foods_prepared.insert(menu_number, 1);
-        // }
+    fn apply_food_prepared(&mut self, _id: TabId, menu_number: usize) {
+        if let Some(qty) = self.foods_prepared.get_mut(&menu_number) {
+            *qty += 1;
+        } else {
+            self.foods_prepared.insert(menu_number, 1);
+        }
     }
 
     fn apply_open_tab(&mut self, id: TabId, waiter_id: WaiterId, table: usize) {
@@ -149,6 +149,24 @@ impl Tab {
         false
     }
 
+    fn food_fully_prepared(&self, menu_number: &usize) -> bool {
+        let mut ordered_qty = 0;
+        for order in self.food_items.iter() {
+            if order.menu_number == *menu_number {
+                ordered_qty += order.quantity;
+            }
+        }
+        if ordered_qty > 0 {
+            if let Some(prepared_qty) = self.foods_prepared.get(menu_number) {
+                if *prepared_qty == ordered_qty {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     fn handle_mark_food_prepared_command(
         &self,
         _id: TabId,
@@ -158,7 +176,8 @@ impl Tab {
         for menu_number in menu_numbers.iter() {
             let menu_numbers_ordered: Vec<usize> =
                 self.food_items.iter().map(|i| i.menu_number).collect();
-            if !menu_numbers_ordered.contains(menu_number) {
+            if !menu_numbers_ordered.contains(menu_number) || self.food_fully_prepared(menu_number)
+            {
                 return Err(TabError::FoodNotOutstanding {
                     menu_number: *menu_number,
                 });
@@ -743,22 +762,67 @@ pub mod tests {
         );
 
         // Act
-        let result = executor
+        let result = executor.when(TabCommand::MarkFoodPrepared {
+            id: tab_id,
+            menu_numbers: vec![1],
+        });
+
+        // Assert
+        result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 });
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_food_is_ordered_twice_when_MarkFoodPrepared_twice_then_FoodPrepared_event_twice(
+    ) {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodPrepared {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+            ]),
+        );
+
+        // Act
+        let event = executor
             .when(TabCommand::MarkFoodPrepared {
                 id: tab_id,
                 menu_numbers: vec![1],
             })
             .inspect_result()
-            .expect("MarkFoodPrepared command failed");
+            .expect("command MarkFoodPrepared failed");
 
         // Assert
+        assert_eq!(event.len(), 1);
         assert_eq!(
-            result[0],
+            event[0],
             TabEvent::FoodPrepared {
                 id: tab_id,
                 menu_number: 1
             }
-        )
+        );
     }
 
     fn arrange_executor(
