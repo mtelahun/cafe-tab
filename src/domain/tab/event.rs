@@ -9,6 +9,7 @@ pub struct MenuItem {
     pub menu_number: usize,
     pub description: String,
     pub price: Decimal,
+    pub quantity: usize,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

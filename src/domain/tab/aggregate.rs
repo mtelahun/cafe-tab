@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use cqrs_es::Aggregate;
 use serde::{Deserialize, Serialize};
@@ -20,7 +22,7 @@ pub struct Tab {
     waiter_id: WaiterId,
     food_items: Vec<MenuItem>,
     drink_items: Vec<MenuItem>,
-    drinks_served: Vec<usize>,
+    drinks_served: HashMap<usize, usize>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -71,7 +73,6 @@ impl Aggregate for Tab {
                 waiter_id,
                 table,
             } => {
-                eprintln!("Tab opened: {id}");
                 self.id = id;
                 self.opened = true;
                 self.waiter_id = waiter_id;
@@ -82,13 +83,49 @@ impl Aggregate for Tab {
             #[allow(unused_variables)]
             TabEvent::FoodOrderPlaced { id, menu_item } => self.food_items.push(menu_item),
             #[allow(unused_variables)]
-            TabEvent::DrinkOrderPlaced { id, menu_item } => self.drink_items.push(menu_item),
-            TabEvent::DrinkServed { id: _, menu_number } => self.drinks_served.push(menu_number),
+            TabEvent::DrinkOrderPlaced { id, menu_item } => {
+                let mut found = false;
+                for drink_item in self.drink_items.iter_mut() {
+                    if drink_item.menu_number == menu_item.menu_number {
+                        drink_item.quantity += 1;
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    self.drink_items.push(menu_item);
+                }
+            }
+            TabEvent::DrinkServed { id: _, menu_number } => {
+                if let Some(qty) = self.drinks_served.get_mut(&menu_number) {
+                    *qty += 1;
+                } else {
+                    self.drinks_served.insert(menu_number, 1);
+                }
+            }
         }
     }
 }
 
 impl Tab {
+    fn drink_fully_served(&self, menu_number: &usize) -> bool {
+        let mut ordered_qty = 0;
+        for order in self.drink_items.iter() {
+            if order.menu_number == *menu_number {
+                ordered_qty = order.quantity;
+                break;
+            }
+        }
+        if ordered_qty > 0 {
+            if let Some(served_qty) = self.drinks_served.get(menu_number) {
+                if *served_qty == ordered_qty {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
     fn read_orders_and_trigger_order_placed_events(
         &self,
         order_items: &[OrderItem],
@@ -99,6 +136,7 @@ impl Tab {
                 menu_number: order_item.menu_number,
                 description: order_item.description.to_owned(),
                 price: order_item.price,
+                quantity: 1,
             };
             if order_item.is_drink {
                 orders.push(TabEvent::DrinkOrderPlaced {
@@ -125,8 +163,7 @@ impl Tab {
         for menu_number in menu_numbers {
             let menu_numbers_ordered: Vec<usize> =
                 self.drink_items.iter().map(|i| i.menu_number).collect();
-            if !menu_numbers_ordered.contains(&menu_number)
-                || self.drinks_served.contains(&menu_number)
+            if !menu_numbers_ordered.contains(&menu_number) || self.drink_fully_served(&menu_number)
             {
                 return Err(TabError::DrinkNotOutstanding { menu_number });
             }
@@ -268,6 +305,7 @@ pub mod tests {
                     menu_number: 1,
                     description: "Steak".into(),
                     price: Decimal::from(10),
+                    quantity: 1,
                 }
             },
             "ItemOrdered"
@@ -304,6 +342,7 @@ pub mod tests {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
                     price: Decimal::from(3),
+                    quantity: 1,
                 }
             },
             "DrinkOrderPlaced"
@@ -347,6 +386,7 @@ pub mod tests {
                     menu_number: 1,
                     description: "Steak".into(),
                     price: Decimal::from(10),
+                    quantity: 1,
                 }
             },
             "FoodOrderPlaced"
@@ -359,6 +399,7 @@ pub mod tests {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
                     price: Decimal::from(3),
+                    quantity: 1,
                 }
             },
             "DrinkOrderPlaced"
@@ -378,6 +419,7 @@ pub mod tests {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
                     price: Decimal::from(3),
+                    quantity: 1,
                 },
             }]),
         );
@@ -416,6 +458,7 @@ pub mod tests {
                     menu_number: 2,
                     description: "Coca-Cola".into(),
                     price: Decimal::from(3),
+                    quantity: 1,
                 },
             }]),
         );
@@ -449,6 +492,7 @@ pub mod tests {
                         menu_number: 2,
                         description: "Coca-Cola".into(),
                         price: Decimal::from(3),
+                        quantity: 1,
                     },
                 },
                 TabEvent::DrinkServed {
@@ -488,6 +532,7 @@ pub mod tests {
                         menu_number: 2,
                         description: "Coca-Cola".into(),
                         price: Decimal::from(3),
+                        quantity: 1,
                     },
                 },
                 TabEvent::DrinkOrderPlaced {
@@ -496,6 +541,7 @@ pub mod tests {
                         menu_number: 2,
                         description: "Coca-Cola".into(),
                         price: Decimal::from(3),
+                        quantity: 1,
                     },
                 },
                 TabEvent::DrinkServed {
