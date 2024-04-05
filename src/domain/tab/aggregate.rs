@@ -21,6 +21,7 @@ pub struct Tab {
     opened: bool,
     waiter_id: WaiterId,
     food_items: Vec<MenuItem>,
+    foods_prepared: HashMap<usize, usize>,
     drink_items: Vec<MenuItem>,
     drinks_served: HashMap<usize, usize>,
 }
@@ -96,7 +97,11 @@ impl Tab {
     }
 
     fn apply_food_prepared(&mut self, _id: TabId, _menu_number: usize) {
-        todo!()
+        // if let Some(qty) = self.foods_prepared.get_mut(&menu_number) {
+        //     *qty += 1;
+        // } else {
+        //     self.foods_prepared.insert(menu_number, 1);
+        // }
     }
 
     fn apply_open_tab(&mut self, id: TabId, waiter_id: WaiterId, table: usize) {
@@ -711,6 +716,49 @@ pub mod tests {
                 menu_number: 1
             }
         );
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_MarkFoodPrepared_twice_on_same_food_then_FoodNotOutstanding_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodPrepared {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+            ]),
+        );
+
+        // Act
+        let result = executor
+            .when(TabCommand::MarkFoodPrepared {
+                id: tab_id,
+                menu_numbers: vec![1],
+            })
+            .inspect_result()
+            .expect("MarkFoodPrepared command failed");
+
+        // Assert
+        assert_eq!(
+            result[0],
+            TabEvent::FoodPrepared {
+                id: tab_id,
+                menu_number: 1
+            }
+        )
     }
 
     fn arrange_executor(
