@@ -49,6 +49,9 @@ impl Aggregate for Tab {
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             TabCommand::OpenTab { waiter_id, table } => {
+                if self.tab_is_open() {
+                    return Err(TabError::TabIsOpen { id: self.id });
+                }
                 self.handle_open_tab_command(&waiter_id, table)
             }
             TabCommand::PlaceOrder { order_items } => {
@@ -194,8 +197,12 @@ impl Tab {
         }])
     }
 
+    fn tab_is_open(&self) -> bool {
+        self.opened
+    }
+
     fn tab_is_open_or_error(&self) -> Result<(), TabError> {
-        if !self.opened {
+        if !self.tab_is_open() {
             return Err(TabError::TabNotOpened);
         }
 
@@ -217,8 +224,6 @@ pub mod tests {
         tab_id::TabId,
         waiter_id::WaiterId,
     };
-
-    use super::Waiter;
 
     #[test]
     #[allow(non_snake_case)]
