@@ -647,6 +647,23 @@ pub mod tests {
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 })
     }
 
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_no_tab_when_MarkFoodPrepared_command_then_TabNotOpen_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(tab_id, None);
+
+        // Act
+        let result = executor.when(TabCommand::MarkFoodPrepared {
+            id: tab_id,
+            menu_numbers: vec![1],
+        });
+
+        // Assert
+        result.then_expect_error(TabError::TabNotOpened);
+    }
+
     fn arrange_executor(
         tab_id: TabId,
         given_events: Option<Vec<TabEvent>>,
