@@ -9,6 +9,7 @@ pub enum TabError {
     DrinkNotOutstanding { menu_number: usize },
     TabIsOpen { id: TabId },
     FoodNotOutstanding { menu_number: usize },
+    FoodNotPrepared { menu_number: usize },
 }
 
 impl std::error::Error for TabError {}
@@ -26,6 +27,9 @@ impl std::fmt::Display for TabError {
             TabError::TabIsOpen { id } => format!("already open: {id}"),
             TabError::FoodNotOutstanding { menu_number } => {
                 format!("food is not outstanding: menu number {menu_number}")
+            }
+            TabError::FoodNotPrepared { menu_number } => {
+                format!("food has not been prepared: menu number {menu_number}")
             }
         };
 
@@ -65,6 +69,10 @@ pub mod tests {
                 }
             ),
             "tab error: already open: 00000000-0000-0000-0000-000000000000"
+        );
+        assert_eq!(
+            format!("{}", TabError::FoodNotPrepared { menu_number: 1 }),
+            "tab error: food has not been prepared: menu number 1"
         );
     }
 }

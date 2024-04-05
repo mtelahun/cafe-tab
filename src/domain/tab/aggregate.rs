@@ -22,6 +22,7 @@ pub struct Tab {
     waiter_id: WaiterId,
     food_items: Vec<MenuItem>,
     foods_prepared: HashMap<usize, usize>,
+    foods_served: HashMap<usize, usize>,
     drink_items: Vec<MenuItem>,
     drinks_served: HashMap<usize, usize>,
 }
@@ -171,6 +172,24 @@ impl Tab {
         false
     }
 
+    fn food_prepared_not_served(&self, menu_number: &usize) -> usize {
+        let mut prepared_qty = 0;
+        for (prepared_menu_number, qty) in self.foods_prepared.iter() {
+            if *prepared_menu_number == *menu_number {
+                prepared_qty += qty;
+            }
+        }
+        let mut served_qty = 0;
+        for (served_menu_number, qty) in self.foods_served.iter() {
+            if *served_menu_number == *menu_number {
+                served_qty += qty;
+            }
+        }
+        let result = prepared_qty - served_qty;
+
+        result.max(0)
+    }
+
     fn handle_mark_food_prepared_command(
         &self,
         _id: TabId,
@@ -206,6 +225,10 @@ impl Tab {
                 self.food_items.iter().map(|i| i.menu_number).collect();
             if !menu_numbers_ordered.contains(menu_number) {
                 return Err(TabError::FoodNotOutstanding {
+                    menu_number: *menu_number,
+                });
+            } else if self.food_prepared_not_served(menu_number) == 0 {
+                return Err(TabError::FoodNotPrepared {
                     menu_number: *menu_number,
                 });
             }
@@ -885,6 +908,35 @@ pub mod tests {
 
         // Assert
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 })
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_not_food_prepared_when_MarkFoodServed_command_then_FoodNotOutstanding_error(
+    ) {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![TabEvent::FoodOrderPlaced {
+                id: tab_id,
+                menu_item: MenuItem {
+                    menu_number: 1,
+                    description: "Steak".into(),
+                    price: Decimal::from(10),
+                    quantity: 1,
+                },
+            }]),
+        );
+
+        // Act
+        let result = executor.when(TabCommand::MarkFoodServed {
+            id: tab_id,
+            menu_numbers: vec![1],
+        });
+
+        // Assert
+        result.then_expect_error(TabError::FoodNotPrepared { menu_number: 1 })
     }
 
     fn arrange_executor(
