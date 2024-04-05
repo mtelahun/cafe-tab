@@ -95,7 +95,7 @@ impl Tab {
         }
     }
 
-    fn apply_food_prepared(&mut self, id: TabId, menu_number: usize) {
+    fn apply_food_prepared(&mut self, _id: TabId, _menu_number: usize) {
         todo!()
     }
 
@@ -149,6 +149,7 @@ impl Tab {
         _id: TabId,
         menu_numbers: &[usize],
     ) -> Result<Vec<TabEvent>, TabError> {
+        let mut result = Vec::new();
         for menu_number in menu_numbers.iter() {
             let menu_numbers_ordered: Vec<usize> =
                 self.food_items.iter().map(|i| i.menu_number).collect();
@@ -157,8 +158,13 @@ impl Tab {
                     menu_number: *menu_number,
                 });
             }
+            result.push(TabEvent::FoodPrepared {
+                id: self.id,
+                menu_number: *menu_number,
+            });
         }
-        todo!()
+
+        Ok(result)
     }
 
     fn handle_mark_drink_served_command(
