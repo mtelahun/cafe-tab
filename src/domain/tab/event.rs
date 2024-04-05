@@ -36,6 +36,10 @@ pub enum TabEvent {
         id: TabId,
         menu_number: usize,
     },
+    FoodServed {
+        id: TabId,
+        menu_number: usize,
+    },
 }
 
 impl DomainEvent for TabEvent {
@@ -59,6 +63,9 @@ impl DomainEvent for TabEvent {
             }
             TabEvent::FoodPrepared { id, menu_number } => {
                 format!("TabEvent::FoodPrepared {{ id: {id}, menu_number: 1 }}")
+            }
+            TabEvent::FoodServed { id, menu_number } => {
+                format!("TabEvent::FoodServed {{ id: {id}, menu_number: 1 }}")
             }
         }
     }
@@ -103,6 +110,7 @@ mod tests {
             table: 1,
         };
         let event5 = TabEvent::FoodPrepared { id, menu_number: 1 };
+        let event6 = TabEvent::FoodServed { id, menu_number: 1 };
 
         assert_eq!(
             event1.event_type(),
@@ -123,6 +131,10 @@ mod tests {
         assert_eq!(
             event5.event_type(),
             format!("TabEvent::FoodPrepared {{ id: {id}, menu_number: 1 }}"),
+        );
+        assert_eq!(
+            event6.event_type(),
+            format!("TabEvent::FoodServed {{ id: {id}, menu_number: 1 }}"),
         );
     }
 
