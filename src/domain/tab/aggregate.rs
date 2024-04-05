@@ -88,10 +88,7 @@ impl Aggregate for Tab {
             TabEvent::DrinkOrderPlaced { id, menu_item } => self.apply_order_drink(id, menu_item),
             TabEvent::DrinkServed { id, menu_number } => self.apply_drinks_served(id, menu_number),
             TabEvent::FoodPrepared { id, menu_number } => self.apply_food_prepared(id, menu_number),
-            TabEvent::FoodServed {
-                id: _,
-                menu_number: _,
-            } => todo!(),
+            TabEvent::FoodServed { id, menu_number } => self.apply_food_served(id, menu_number),
         }
     }
 }
@@ -110,6 +107,14 @@ impl Tab {
             *qty += 1;
         } else {
             self.foods_prepared.insert(menu_number, 1);
+        }
+    }
+
+    fn apply_food_served(&mut self, _id: TabId, menu_number: usize) {
+        if let Some(qty) = self.foods_served.get_mut(&menu_number) {
+            *qty += 1;
+        } else {
+            self.foods_served.insert(menu_number, 1);
         }
     }
 
@@ -176,6 +181,24 @@ impl Tab {
         false
     }
 
+    fn food_fully_served(&self, menu_number: &usize) -> bool {
+        let mut ordered_qty = 0;
+        for order in self.food_items.iter() {
+            if order.menu_number == *menu_number {
+                ordered_qty += order.quantity;
+            }
+        }
+        if ordered_qty > 0 {
+            if let Some(served_qty) = self.foods_served.get(menu_number) {
+                if *served_qty == ordered_qty {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     fn food_prepared_not_served(&self, menu_number: &usize) -> usize {
         let mut prepared_qty = 0;
         for (prepared_menu_number, qty) in self.foods_prepared.iter() {
@@ -227,7 +250,7 @@ impl Tab {
         for menu_number in menu_numbers.iter() {
             let menu_numbers_ordered: Vec<usize> =
                 self.food_items.iter().map(|i| i.menu_number).collect();
-            if !menu_numbers_ordered.contains(menu_number) {
+            if !menu_numbers_ordered.contains(menu_number) || self.food_fully_served(menu_number) {
                 return Err(TabError::FoodNotOutstanding {
                     menu_number: *menu_number,
                 });
@@ -984,6 +1007,44 @@ pub mod tests {
                 menu_number: 1
             }
         );
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_MarkFoodServed_twice_on_same_food_then_FoodNotOutstanding_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodPrepared {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+                TabEvent::FoodServed {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+            ]),
+        );
+
+        // Act
+        let result = executor.when(TabCommand::MarkFoodServed {
+            id: tab_id,
+            menu_numbers: vec![1],
+        });
+
+        // Assert
+        result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 });
     }
 
     fn arrange_executor(
