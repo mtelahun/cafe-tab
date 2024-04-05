@@ -1,3 +1,4 @@
+#![allow(unused_variables)]
 use cqrs_es::DomainEvent;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -35,10 +36,73 @@ pub enum TabEvent {
 
 impl DomainEvent for TabEvent {
     fn event_type(&self) -> String {
-        todo!()
+        match self {
+            TabEvent::TabOpened {
+                id,
+                waiter_id,
+                table,
+            } => "".into(),
+            TabEvent::FoodOrderPlaced { id, menu_item } => "".into(),
+            TabEvent::DrinkOrderPlaced { id, menu_item } => "".into(),
+            TabEvent::DrinkServed { id, menu_number } => "".into(),
+        }
     }
 
     fn event_version(&self) -> String {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cqrs_es::DomainEvent;
+    use rust_decimal::Decimal;
+
+    use crate::domain::tab::{tab_id::TabId, waiter_id::WaiterId};
+
+    use super::{MenuItem, TabEvent};
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn event_type() {
+        let id = TabId::new();
+        let waiter_id = WaiterId::new();
+        let menu_item = MenuItem {
+            menu_number: 1,
+            description: "MenuItem".into(),
+            price: Decimal::ZERO,
+            quantity: 0,
+        };
+        let event1 = TabEvent::DrinkOrderPlaced {
+            id,
+            menu_item: menu_item.clone(),
+        };
+        let event2 = TabEvent::DrinkServed { id, menu_number: 1 };
+        let event3 = TabEvent::FoodOrderPlaced {
+            id,
+            menu_item: menu_item.clone(),
+        };
+        let event4 = TabEvent::TabOpened {
+            id,
+            waiter_id,
+            table: 1,
+        };
+
+        assert_eq!(
+            event1.event_type(),
+            format!("TabEvent::DrinkOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}"),
+        );
+        assert_eq!(
+            event2.event_type(),
+            format!("TabEvent::DrinkServed {{ id: {id}, menu_number: 1 }}"),
+        );
+        assert_eq!(
+            event3.event_type(),
+            format!("TabEvent::FoodOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}"),
+        );
+        assert_eq!(
+            event4.event_type(),
+            format!("TabEvent::TabOpened {{ id: {id}, waiter_id: {waiter_id}, table: 1 }}"),
+        );
     }
 }
