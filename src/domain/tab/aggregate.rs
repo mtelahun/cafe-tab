@@ -198,8 +198,24 @@ impl Tab {
     fn handle_mark_food_served_command(
         &self,
         _id: TabId,
-        _menu_numbers: &[usize],
+        menu_numbers: &[usize],
     ) -> Result<Vec<TabEvent>, TabError> {
+        let mut result = Vec::new();
+        for menu_number in menu_numbers.iter() {
+            let menu_numbers_ordered: Vec<usize> =
+                self.food_items.iter().map(|i| i.menu_number).collect();
+            if !menu_numbers_ordered.contains(menu_number) {
+                return Err(TabError::FoodNotOutstanding {
+                    menu_number: *menu_number,
+                });
+            }
+            result.push(TabEvent::FoodPrepared {
+                id: self.id,
+                menu_number: *menu_number,
+            });
+        }
+
+        // Ok(result)
         todo!()
     }
 
@@ -852,6 +868,23 @@ pub mod tests {
 
         // Assert
         result.then_expect_error(TabError::TabNotOpened);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_MarkFoodServed_command_then_FoodNotOutstanding_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(tab_id, Some(Vec::new()));
+
+        // Act
+        let result = executor.when(TabCommand::MarkFoodServed {
+            id: tab_id,
+            menu_numbers: vec![1],
+        });
+
+        // Assert
+        result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 })
     }
 
     fn arrange_executor(
