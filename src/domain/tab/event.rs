@@ -113,4 +113,35 @@ mod tests {
             format!("TabEvent::TabOpened {{ id: {id}, waiter_id: {waiter_id}, table: 1 }}"),
         );
     }
+
+    #[test]
+    fn event_version_is_1_0() {
+        let id = TabId::new();
+        let waiter_id = WaiterId::new();
+        let menu_item = MenuItem {
+            menu_number: 1,
+            description: "MenuItem".into(),
+            price: Decimal::ZERO,
+            quantity: 0,
+        };
+        let event1 = TabEvent::DrinkOrderPlaced {
+            id,
+            menu_item: menu_item.clone(),
+        };
+        let event2 = TabEvent::DrinkServed { id, menu_number: 1 };
+        let event3 = TabEvent::FoodOrderPlaced {
+            id,
+            menu_item: menu_item.clone(),
+        };
+        let event4 = TabEvent::TabOpened {
+            id,
+            waiter_id,
+            table: 1,
+        };
+
+        assert_eq!(event1.event_version(), String::from("1.0"));
+        assert_eq!(event1.event_version(), event2.event_version(),);
+        assert_eq!(event2.event_version(), event3.event_version(),);
+        assert_eq!(event3.event_version(), event4.event_version(),);
+    }
 }
