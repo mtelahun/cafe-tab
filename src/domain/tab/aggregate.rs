@@ -1047,6 +1047,68 @@ pub mod tests {
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 });
     }
 
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_food_is_ordered_twice_but_served_once_when_MarkFoodServed_then_FoodServed_event(
+    ) {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodPrepared {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+                TabEvent::FoodServed {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+                TabEvent::FoodPrepared {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+            ]),
+        );
+
+        // Act
+        let event = executor
+            .when(TabCommand::MarkFoodServed {
+                id: tab_id,
+                menu_numbers: vec![1],
+            })
+            .inspect_result()
+            .expect("command MarkFoodServed failed");
+
+        // Assert
+        assert_eq!(event.len(), 1);
+        assert_eq!(
+            event[0],
+            TabEvent::FoodServed {
+                id: tab_id,
+                menu_number: 1
+            }
+        );
+    }
+
     fn arrange_executor(
         tab_id: TabId,
         given_events: Option<Vec<TabEvent>>,
