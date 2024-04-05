@@ -32,6 +32,10 @@ pub enum TabEvent {
         id: TabId,
         menu_number: usize,
     },
+    FoodPrepared {
+        id: TabId,
+        menu_number: usize,
+    },
 }
 
 impl DomainEvent for TabEvent {
@@ -52,6 +56,9 @@ impl DomainEvent for TabEvent {
             }
             TabEvent::DrinkServed { id, menu_number } => {
                 format!("TabEvent::DrinkServed {{ id: {id}, menu_number: 1 }}")
+            }
+            TabEvent::FoodPrepared { id, menu_number } => {
+                format!("TabEvent::FoodPrepared {{ id: {id}, menu_number: 1 }}")
             }
         }
     }
@@ -95,6 +102,7 @@ mod tests {
             waiter_id,
             table: 1,
         };
+        let event5 = TabEvent::FoodPrepared { id, menu_number: 1 };
 
         assert_eq!(
             event1.event_type(),
@@ -111,6 +119,10 @@ mod tests {
         assert_eq!(
             event4.event_type(),
             format!("TabEvent::TabOpened {{ id: {id}, waiter_id: {waiter_id}, table: 1 }}"),
+        );
+        assert_eq!(
+            event5.event_type(),
+            format!("TabEvent::FoodPrepared {{ id: {id}, menu_number: 1 }}"),
         );
     }
 
@@ -138,10 +150,12 @@ mod tests {
             waiter_id,
             table: 1,
         };
+        let event5 = TabEvent::FoodPrepared { id, menu_number: 1 };
 
         assert_eq!(event1.event_version(), String::from("1.0"));
-        assert_eq!(event1.event_version(), event2.event_version(),);
-        assert_eq!(event2.event_version(), event3.event_version(),);
-        assert_eq!(event3.event_version(), event4.event_version(),);
+        assert_eq!(event2.event_version(), event2.event_version(),);
+        assert_eq!(event3.event_version(), event3.event_version(),);
+        assert_eq!(event4.event_version(), event4.event_version(),);
+        assert_eq!(event5.event_version(), event4.event_version(),);
     }
 }

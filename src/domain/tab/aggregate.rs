@@ -81,6 +81,7 @@ impl Aggregate for Tab {
             TabEvent::FoodOrderPlaced { id, menu_item } => self.apply_order_food(id, menu_item),
             TabEvent::DrinkOrderPlaced { id, menu_item } => self.apply_order_drink(id, menu_item),
             TabEvent::DrinkServed { id, menu_number } => self.apply_drinks_served(id, menu_number),
+            TabEvent::FoodPrepared { id, menu_number } => self.apply_food_prepared(id, menu_number),
         }
     }
 }
@@ -92,6 +93,10 @@ impl Tab {
         } else {
             self.drinks_served.insert(menu_number, 1);
         }
+    }
+
+    fn apply_food_prepared(&mut self, id: TabId, menu_number: usize) {
+        todo!()
     }
 
     fn apply_open_tab(&mut self, id: TabId, waiter_id: WaiterId, table: usize) {
@@ -109,15 +114,15 @@ impl Tab {
 
     fn apply_order_food(&mut self, _id: TabId, menu_item: MenuItem) {
         let mut found = false;
-        for drink_item in self.drink_items.iter_mut() {
-            if drink_item.menu_number == menu_item.menu_number {
-                drink_item.quantity += 1;
+        for food_item in self.food_items.iter_mut() {
+            if food_item.menu_number == menu_item.menu_number {
+                food_item.quantity += 1;
                 found = true;
                 break;
             }
         }
         if !found {
-            self.drink_items.push(menu_item);
+            self.food_items.push(menu_item);
         }
     }
 
@@ -662,6 +667,44 @@ pub mod tests {
 
         // Assert
         result.then_expect_error(TabError::TabNotOpened);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_and_food_ordered_when_MarkFoodPrepared_command_then_FoodPrepared_event() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![TabEvent::FoodOrderPlaced {
+                id: tab_id,
+                menu_item: MenuItem {
+                    menu_number: 1,
+                    description: "Steak".into(),
+                    price: Decimal::from(10),
+                    quantity: 1,
+                },
+            }]),
+        );
+
+        // Act
+        let event = executor
+            .when(TabCommand::MarkFoodPrepared {
+                id: tab_id,
+                menu_numbers: vec![1],
+            })
+            .inspect_result()
+            .expect("command MarkFoodPrepared failed");
+
+        // Assert
+        assert_eq!(event.len(), 1);
+        assert_eq!(
+            event[0],
+            TabEvent::FoodPrepared {
+                id: tab_id,
+                menu_number: 1
+            }
+        );
     }
 
     fn arrange_executor(
