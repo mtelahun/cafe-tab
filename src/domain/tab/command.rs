@@ -9,6 +9,7 @@ pub enum TabCommand {
     PlaceOrder { order_items: Vec<OrderItem> },
     MarkDrinksServed { id: TabId, menu_numbers: Vec<usize> },
     MarkFoodPrepared { id: TabId, menu_numbers: Vec<usize> },
+    MarkFoodServed { id: TabId, menu_numbers: Vec<usize> },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
