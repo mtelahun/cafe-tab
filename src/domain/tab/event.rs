@@ -41,10 +41,18 @@ impl DomainEvent for TabEvent {
                 id,
                 waiter_id,
                 table,
-            } => "".into(),
-            TabEvent::FoodOrderPlaced { id, menu_item } => "".into(),
-            TabEvent::DrinkOrderPlaced { id, menu_item } => "".into(),
-            TabEvent::DrinkServed { id, menu_number } => "".into(),
+            } => format!(
+                "TabEvent::TabOpened {{ id: {id}, waiter_id: {waiter_id}, table: {table} }}"
+            ),
+            TabEvent::FoodOrderPlaced { id, menu_item } => {
+                format!("TabEvent::FoodOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}")
+            }
+            TabEvent::DrinkOrderPlaced { id, menu_item } => {
+                format!("TabEvent::DrinkOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}")
+            }
+            TabEvent::DrinkServed { id, menu_number } => {
+                format!("TabEvent::DrinkServed {{ id: {id}, menu_number: 1 }}")
+            }
         }
     }
 
