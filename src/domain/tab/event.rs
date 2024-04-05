@@ -57,7 +57,7 @@ impl DomainEvent for TabEvent {
     }
 
     fn event_version(&self) -> String {
-        todo!()
+        "1.0".into()
     }
 }
 
