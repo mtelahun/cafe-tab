@@ -144,6 +144,15 @@ impl Tab {
         _id: TabId,
         menu_numbers: &[usize],
     ) -> Result<Vec<TabEvent>, TabError> {
+        for menu_number in menu_numbers.iter() {
+            let menu_numbers_ordered: Vec<usize> =
+                self.food_items.iter().map(|i| i.menu_number).collect();
+            if !menu_numbers_ordered.contains(menu_number) {
+                return Err(TabError::FoodNotOutstanding {
+                    menu_number: *menu_number,
+                });
+            }
+        }
         todo!()
     }
 
