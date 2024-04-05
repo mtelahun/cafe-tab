@@ -49,19 +49,15 @@ impl Aggregate for Tab {
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             TabCommand::OpenTab { waiter_id, table } => {
-                self.trigger_open_tab_event(&waiter_id, table)
+                self.handle_open_tab_command(&waiter_id, table)
             }
             TabCommand::PlaceOrder { order_items } => {
-                if !self.opened {
-                    return Err(TabError::TabNotOpened);
-                }
-                self.read_orders_and_trigger_order_placed_events(&order_items)
+                self.tab_is_open_or_error()?;
+                self.handle_place_order_command(&order_items)
             }
             TabCommand::MarkDrinksServed { id, menu_numbers } => {
-                if !self.opened {
-                    return Err(TabError::TabNotOpened);
-                }
-                self.trigger_drink_served_events(id, menu_numbers)
+                self.tab_is_open_or_error()?;
+                self.handle_mark_drink_served_command(id, menu_numbers)
             }
         }
     }
@@ -73,47 +69,56 @@ impl Aggregate for Tab {
                 waiter_id,
                 table,
             } => {
-                self.id = id;
-                self.opened = true;
-                self.waiter_id = waiter_id;
-                self.table = table;
-                self.drink_items = Vec::new();
-                self.food_items = Vec::new();
+                self.apply_open_tab(id, waiter_id, table);
             }
-            #[allow(unused_variables)]
-            TabEvent::FoodOrderPlaced { id, menu_item } => self.food_items.push(menu_item),
-            #[allow(unused_variables)]
-            TabEvent::DrinkOrderPlaced { id, menu_item } => {
-                let mut found = false;
-                for drink_item in self.drink_items.iter_mut() {
-                    if drink_item.menu_number == menu_item.menu_number {
-                        drink_item.quantity += 1;
-                        found = true;
-                        break;
-                    }
-                }
-                if !found {
-                    self.drink_items.push(menu_item);
-                }
-            }
-            TabEvent::DrinkServed { id: _, menu_number } => {
-                if let Some(qty) = self.drinks_served.get_mut(&menu_number) {
-                    *qty += 1;
-                } else {
-                    self.drinks_served.insert(menu_number, 1);
-                }
-            }
+            TabEvent::FoodOrderPlaced { id, menu_item } => self.apply_order_food(id, menu_item),
+            TabEvent::DrinkOrderPlaced { id, menu_item } => self.apply_order_drink(id, menu_item),
+            TabEvent::DrinkServed { id, menu_number } => self.apply_drinks_served(id, menu_number),
         }
     }
 }
 
 impl Tab {
+    fn apply_drinks_served(&mut self, _id: TabId, menu_number: usize) {
+        if let Some(qty) = self.drinks_served.get_mut(&menu_number) {
+            *qty += 1;
+        } else {
+            self.drinks_served.insert(menu_number, 1);
+        }
+    }
+
+    fn apply_open_tab(&mut self, id: TabId, waiter_id: WaiterId, table: usize) {
+        self.id = id;
+        self.waiter_id = waiter_id;
+        self.table = table;
+        self.drink_items = Vec::new();
+        self.food_items = Vec::new();
+        self.opened = true;
+    }
+
+    fn apply_order_drink(&mut self, _id: TabId, menu_item: MenuItem) {
+        self.drink_items.push(menu_item);
+    }
+
+    fn apply_order_food(&mut self, _id: TabId, menu_item: MenuItem) {
+        let mut found = false;
+        for drink_item in self.drink_items.iter_mut() {
+            if drink_item.menu_number == menu_item.menu_number {
+                drink_item.quantity += 1;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            self.drink_items.push(menu_item);
+        }
+    }
+
     fn drink_fully_served(&self, menu_number: &usize) -> bool {
         let mut ordered_qty = 0;
         for order in self.drink_items.iter() {
             if order.menu_number == *menu_number {
-                ordered_qty = order.quantity;
-                break;
+                ordered_qty += order.quantity;
             }
         }
         if ordered_qty > 0 {
@@ -126,7 +131,30 @@ impl Tab {
 
         false
     }
-    fn read_orders_and_trigger_order_placed_events(
+
+    fn handle_mark_drink_served_command(
+        &self,
+        _id: TabId,
+        menu_numbers: Vec<usize>,
+    ) -> Result<Vec<TabEvent>, TabError> {
+        let mut result = Vec::new();
+        for menu_number in menu_numbers {
+            let menu_numbers_ordered: Vec<usize> =
+                self.drink_items.iter().map(|i| i.menu_number).collect();
+            if !menu_numbers_ordered.contains(&menu_number) || self.drink_fully_served(&menu_number)
+            {
+                return Err(TabError::DrinkNotOutstanding { menu_number });
+            }
+            result.push(TabEvent::DrinkServed {
+                id: self.id,
+                menu_number,
+            });
+        }
+
+        Ok(result)
+    }
+
+    fn handle_place_order_command(
         &self,
         order_items: &[OrderItem],
     ) -> Result<Vec<TabEvent>, TabError> {
@@ -154,29 +182,7 @@ impl Tab {
         Ok(orders)
     }
 
-    fn trigger_drink_served_events(
-        &self,
-        _id: TabId,
-        menu_numbers: Vec<usize>,
-    ) -> Result<Vec<TabEvent>, TabError> {
-        let mut result = Vec::new();
-        for menu_number in menu_numbers {
-            let menu_numbers_ordered: Vec<usize> =
-                self.drink_items.iter().map(|i| i.menu_number).collect();
-            if !menu_numbers_ordered.contains(&menu_number) || self.drink_fully_served(&menu_number)
-            {
-                return Err(TabError::DrinkNotOutstanding { menu_number });
-            }
-            result.push(TabEvent::DrinkServed {
-                id: self.id,
-                menu_number,
-            });
-        }
-
-        Ok(result)
-    }
-
-    fn trigger_open_tab_event(
+    fn handle_open_tab_command(
         &self,
         waiter_id: &WaiterId,
         table: usize,
@@ -186,6 +192,14 @@ impl Tab {
             waiter_id: *waiter_id,
             table,
         }])
+    }
+
+    fn tab_is_open_or_error(&self) -> Result<(), TabError> {
+        if !self.opened {
+            return Err(TabError::TabNotOpened);
+        }
+
+        Ok(())
     }
 }
 
@@ -203,6 +217,8 @@ pub mod tests {
         tab_id::TabId,
         waiter_id::WaiterId,
     };
+
+    use super::Waiter;
 
     #[test]
     #[allow(non_snake_case)]
@@ -519,7 +535,7 @@ pub mod tests {
 
     #[test]
     #[allow(non_snake_case)]
-    fn given_open_tab_and_one_drink_ordered_twice_when_MarkDrinksServed_twice_then_DrinkServed_event_twice(
+    fn given_open_tab_and_drink_is_ordered_twice_when_MarkDrinksServed_twice_then_DrinkServed_event_twice(
     ) {
         // Arrange
         let tab_id = TabId::new();
@@ -569,6 +585,23 @@ pub mod tests {
                 menu_number: 2
             }
         );
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_OpenTab_command_then_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(tab_id, Some(Vec::new()));
+
+        // Act
+        let result = executor.when(TabCommand::OpenTab {
+            waiter_id: WaiterId::new(),
+            table: 1,
+        });
+
+        // Assert
+        result.then_expect_error(TabError::TabIsOpen { id: tab_id })
     }
 
     fn arrange_executor(

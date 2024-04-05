@@ -1,3 +1,5 @@
+use super::tab_id::TabId;
+
 #[derive(Debug, PartialEq)]
 pub enum TabError {
     CannotCancelServedItem,
@@ -5,6 +7,7 @@ pub enum TabError {
     MustPayEnough,
     TabNotOpened,
     DrinkNotOutstanding { menu_number: usize },
+    TabIsOpen { id: TabId },
 }
 
 impl std::error::Error for TabError {}
@@ -19,6 +22,7 @@ impl std::fmt::Display for TabError {
             TabError::DrinkNotOutstanding { menu_number } => {
                 format!("drink was not served: menu number {menu_number}")
             }
+            TabError::TabIsOpen { id } => format!("already open: id: {id}"),
         };
 
         write!(f, "tab error: {msg}")
