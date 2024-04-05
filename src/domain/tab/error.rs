@@ -20,11 +20,47 @@ impl std::fmt::Display for TabError {
             TabError::MustPayEnough => String::from("payment amount is not enough"),
             TabError::TabNotOpened => String::from("tab is not open"),
             TabError::DrinkNotOutstanding { menu_number } => {
-                format!("drink was not served: menu number {menu_number}")
+                format!("drink is not outstanding: menu number {menu_number}")
             }
-            TabError::TabIsOpen { id } => format!("already open: id: {id}"),
+            TabError::TabIsOpen { id } => format!("already open: {id}"),
         };
 
         write!(f, "tab error: {msg}")
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::domain::tab::tab_id::TabId;
+
+    use super::TabError;
+
+    #[test]
+    fn error_to_string() {
+        assert_eq!(
+            format!("{}", TabError::CannotCancelServedItem),
+            "tab error: cannot cancel served item"
+        );
+        assert_eq!(
+            format!("{}", TabError::DrinkNotOutstanding { menu_number: 1 }),
+            "tab error: drink is not outstanding: menu number 1"
+        );
+        assert_eq!(
+            format!("{}", TabError::MustPayEnough),
+            "tab error: payment amount is not enough"
+        );
+        assert_eq!(
+            format!("{}", TabError::TabHasUnservedItems),
+            "tab error: tab has unserved items"
+        );
+        assert_eq!(
+            format!(
+                "{}",
+                TabError::TabIsOpen {
+                    id: TabId::default()
+                }
+            ),
+            "tab error: already open: 00000000-0000-0000-0000-000000000000"
+        );
     }
 }
