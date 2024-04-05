@@ -88,7 +88,10 @@ impl Aggregate for Tab {
             TabEvent::DrinkOrderPlaced { id, menu_item } => self.apply_order_drink(id, menu_item),
             TabEvent::DrinkServed { id, menu_number } => self.apply_drinks_served(id, menu_number),
             TabEvent::FoodPrepared { id, menu_number } => self.apply_food_prepared(id, menu_number),
-            TabEvent::FoodServed { id, menu_number } => todo!(),
+            TabEvent::FoodServed {
+                id: _,
+                menu_number: _,
+            } => todo!(),
         }
     }
 }
@@ -233,14 +236,13 @@ impl Tab {
                     menu_number: *menu_number,
                 });
             }
-            result.push(TabEvent::FoodPrepared {
+            result.push(TabEvent::FoodServed {
                 id: self.id,
                 menu_number: *menu_number,
             });
         }
 
-        // Ok(result)
-        todo!()
+        Ok(result)
     }
 
     fn handle_mark_drink_served_command(
