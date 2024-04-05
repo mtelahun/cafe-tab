@@ -63,7 +63,7 @@ impl Aggregate for Tab {
                 self.handle_mark_drink_served_command(id, menu_numbers)
             }
             TabCommand::MarkFoodPrepared { id, menu_numbers } => {
-                // self.tab_is_open_or_error()?;
+                self.tab_is_open_or_error()?;
                 self.handle_mark_food_prepared_command(id, &menu_numbers)
             }
         }
