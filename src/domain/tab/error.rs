@@ -8,6 +8,7 @@ pub enum TabError {
     TabNotOpened,
     DrinkNotOutstanding { menu_number: usize },
     TabIsOpen { id: TabId },
+    FoodNotOutstanding { menu_number: usize },
 }
 
 impl std::error::Error for TabError {}
@@ -23,6 +24,9 @@ impl std::fmt::Display for TabError {
                 format!("drink is not outstanding: menu number {menu_number}")
             }
             TabError::TabIsOpen { id } => format!("already open: {id}"),
+            TabError::FoodNotOutstanding { menu_number } => {
+                format!("food is not outstanding: menu number {menu_number}")
+            }
         };
 
         write!(f, "tab error: {msg}")

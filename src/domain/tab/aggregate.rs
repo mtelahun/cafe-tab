@@ -62,6 +62,10 @@ impl Aggregate for Tab {
                 self.tab_is_open_or_error()?;
                 self.handle_mark_drink_served_command(id, menu_numbers)
             }
+            TabCommand::MarkFoodPrepared { id, menu_numbers } => {
+                // self.tab_is_open_or_error()?;
+                self.handle_mark_food_prepared_command(id, &menu_numbers)
+            }
         }
     }
 
@@ -133,6 +137,14 @@ impl Tab {
         }
 
         false
+    }
+
+    fn handle_mark_food_prepared_command(
+        &self,
+        _id: TabId,
+        menu_numbers: &[usize],
+    ) -> Result<Vec<TabEvent>, TabError> {
+        todo!()
     }
 
     fn handle_mark_drink_served_command(
@@ -607,6 +619,23 @@ pub mod tests {
 
         // Assert
         result.then_expect_error(TabError::TabIsOpen { id: tab_id })
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_MarkFoodPrepared_command_then_FoodNotOutstanding_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(tab_id, Some(Vec::new()));
+
+        // Act
+        let result = executor.when(TabCommand::MarkFoodPrepared {
+            id: tab_id,
+            menu_numbers: vec![1],
+        });
+
+        // Assert
+        result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 })
     }
 
     fn arrange_executor(
