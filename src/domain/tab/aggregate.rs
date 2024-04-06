@@ -378,6 +378,8 @@ impl Tab {
 
 #[cfg(test)]
 pub mod tests {
+    use std::str::FromStr;
+
     use cqrs_es::test::{AggregateTestExecutor, TestFramework};
     use rust_decimal::Decimal;
 
@@ -1220,6 +1222,34 @@ pub mod tests {
                 tip_value: Decimal::from(1),
             }
         );
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_CloseTab_amount_paid_not_enough_then_MustPayEnough_error() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![TabEvent::DrinkOrderPlaced {
+                id: tab_id,
+                menu_item: MenuItem {
+                    menu_number: 2,
+                    description: "Coca-Cola".into(),
+                    price: Decimal::from(5),
+                    quantity: 1,
+                },
+            }]),
+        );
+
+        // Act
+        let result = executor.when(TabCommand::CloseTab {
+            id: tab_id,
+            amount_paid: Decimal::from_str("4.99").unwrap(),
+        });
+
+        // Assert
+        result.then_expect_error(TabError::MustPayEnough);
     }
 
     fn arrange_executor(
