@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use cqrs_es::Aggregate;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -56,12 +57,9 @@ impl Aggregate for Tab {
                 }
                 self.handle_open_tab_command(&waiter_id, table)
             }
-            TabCommand::CloseTab {
-                id: _,
-                amount_paid: _,
-            } => {
+            TabCommand::CloseTab { id, amount_paid } => {
                 self.tab_is_open_or_error()?;
-                todo!()
+                self.handle_close_tab_command(id, amount_paid)
             }
             TabCommand::PlaceOrder { order_items } => {
                 self.tab_is_open_or_error()?;
@@ -228,6 +226,28 @@ impl Tab {
         let result = prepared_qty - served_qty;
 
         result.max(0)
+    }
+
+    fn handle_close_tab_command(
+        &self,
+        _id: TabId,
+        amount_paid: Decimal,
+    ) -> Result<Vec<TabEvent>, TabError> {
+        let mut subtotal = Decimal::ZERO;
+        for food in self.food_items.iter() {
+            subtotal += food.price * Decimal::from(food.quantity)
+        }
+        for drink in self.drink_items.iter() {
+            subtotal += drink.price * Decimal::from(drink.quantity)
+        }
+        let event = TabEvent::TabClosed {
+            id: self.id,
+            amount_paid,
+            order_value: subtotal,
+            tip_value: amount_paid - subtotal,
+        };
+
+        Ok(vec![event])
     }
 
     fn handle_mark_food_prepared_command(
