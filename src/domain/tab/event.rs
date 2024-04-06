@@ -40,6 +40,12 @@ pub enum TabEvent {
         id: TabId,
         menu_number: usize,
     },
+    TabClosed {
+        id: TabId,
+        amount_paid: Decimal,
+        order_value: Decimal,
+        tip_value: Decimal,
+    },
 }
 
 impl DomainEvent for TabEvent {
@@ -67,6 +73,14 @@ impl DomainEvent for TabEvent {
             TabEvent::FoodServed { id, menu_number } => {
                 format!("TabEvent::FoodServed {{ id: {id}, menu_number: 1 }}")
             }
+            TabEvent::TabClosed {
+                id,
+                amount_paid,
+                order_value,
+                tip_value,
+            } => format!(
+                "TabEvent::TabClosed {{ id: {id}, amount_paid: {amount_paid}, order_value: {order_value}, tip_value: {tip_value} }}"
+            )
         }
     }
 
@@ -111,6 +125,12 @@ mod tests {
         };
         let event5 = TabEvent::FoodPrepared { id, menu_number: 1 };
         let event6 = TabEvent::FoodServed { id, menu_number: 1 };
+        let event7 = TabEvent::TabClosed {
+            id,
+            amount_paid: Decimal::ZERO,
+            order_value: Decimal::ZERO,
+            tip_value: Decimal::ZERO,
+        };
 
         assert_eq!(
             event1.event_type(),
@@ -135,6 +155,12 @@ mod tests {
         assert_eq!(
             event6.event_type(),
             format!("TabEvent::FoodServed {{ id: {id}, menu_number: 1 }}"),
+        );
+        assert_eq!(
+            event7.event_type(),
+            format!(
+                "TabEvent::TabClosed {{ id: {id}, amount_paid: 0, order_value: 0, tip_value: 0 }}"
+            ),
         );
     }
 
@@ -163,11 +189,20 @@ mod tests {
             table: 1,
         };
         let event5 = TabEvent::FoodPrepared { id, menu_number: 1 };
+        let event6 = TabEvent::FoodServed { id, menu_number: 1 };
+        let event7 = TabEvent::TabClosed {
+            id,
+            amount_paid: Decimal::from(0),
+            order_value: Decimal::from(0),
+            tip_value: Decimal::from(0),
+        };
 
         assert_eq!(event1.event_version(), String::from("1.0"));
         assert_eq!(event2.event_version(), event2.event_version(),);
         assert_eq!(event3.event_version(), event3.event_version(),);
         assert_eq!(event4.event_version(), event4.event_version(),);
         assert_eq!(event5.event_version(), event4.event_version(),);
+        assert_eq!(event6.event_version(), event5.event_version(),);
+        assert_eq!(event7.event_version(), event6.event_version(),);
     }
 }

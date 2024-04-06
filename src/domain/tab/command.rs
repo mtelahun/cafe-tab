@@ -10,6 +10,7 @@ pub enum TabCommand {
     MarkDrinksServed { id: TabId, menu_numbers: Vec<usize> },
     MarkFoodPrepared { id: TabId, menu_numbers: Vec<usize> },
     MarkFoodServed { id: TabId, menu_numbers: Vec<usize> },
+    CloseTab { id: TabId, amount_paid: Decimal },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
