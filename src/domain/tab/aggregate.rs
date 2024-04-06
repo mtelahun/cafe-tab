@@ -56,11 +56,11 @@ impl Aggregate for Tab {
                 }
                 self.handle_open_tab_command(&waiter_id, table)
             }
-            TabCommand::CloseTab { id, amount_paid } => {
-                // if self.tab_is_open() {
-                //     return Err(TabError::TabIsOpen { id: self.id });
-                // }
-                // self.handle_close_tab_command(id, amount_paid)
+            TabCommand::CloseTab {
+                id: _,
+                amount_paid: _,
+            } => {
+                self.tab_is_open_or_error()?;
                 todo!()
             }
             TabCommand::PlaceOrder { order_items } => {
@@ -97,10 +97,10 @@ impl Aggregate for Tab {
             TabEvent::FoodPrepared { id, menu_number } => self.apply_food_prepared(id, menu_number),
             TabEvent::FoodServed { id, menu_number } => self.apply_food_served(id, menu_number),
             TabEvent::TabClosed {
-                id,
-                amount_paid,
-                order_value,
-                tip_value,
+                id: _,
+                amount_paid: _,
+                order_value: _,
+                tip_value: _,
             } => todo!(),
         }
     }
