@@ -240,11 +240,15 @@ impl Tab {
         for drink in self.drink_items.iter() {
             subtotal += drink.price * Decimal::from(drink.quantity)
         }
+        let difference = amount_paid - subtotal;
+        if difference < Decimal::ZERO {
+            return Err(TabError::MustPayEnough);
+        }
         let event = TabEvent::TabClosed {
             id: self.id,
             amount_paid,
             order_value: subtotal,
-            tip_value: amount_paid - subtotal,
+            tip_value: difference,
         };
 
         Ok(vec![event])
