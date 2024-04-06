@@ -384,7 +384,7 @@ impl Tab {
 pub mod tests {
     use std::str::FromStr;
 
-    use cqrs_es::test::{AggregateTestExecutor, TestFramework};
+    use cqrs_es::test::{AggregateResultValidator, AggregateTestExecutor, TestFramework};
     use rust_decimal::Decimal;
 
     use crate::domain::tab::{
@@ -437,21 +437,20 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_tab_with_no_events_when_OpenTab_command_then_TabOpened_event() {
-        // Arrange
         let expected_waiter_id = WaiterId::new();
-        let tab_services = TabServices {};
-        let executor = TestFramework::<Tab>::with(tab_services).given_no_previous_events();
 
-        // Act
-        let result = executor.when(TabCommand::OpenTab {
-            waiter_id: expected_waiter_id,
-            table: 1,
-        });
+        let result = arrange_and_act(
+            TabId::default(),
+            None,
+            TabCommand::OpenTab {
+                waiter_id: expected_waiter_id,
+                table: 1,
+            },
+        );
         let mut event = result
             .inspect_result()
             .expect("failed to execute command: OpenTab");
 
-        // Assert
         if let Some((tid, wid, table_num)) = match event.pop().unwrap() {
             TabEvent::TabOpened {
                 id,
@@ -471,7 +470,6 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_opened_tab_when_order_food_then_ItemOrdered_event() {
-        // Arrange
         let tab_id = TabId::new();
         let order_items = vec![OrderItem {
             menu_number: 1,
@@ -479,15 +477,15 @@ pub mod tests {
             is_drink: false,
             price: Decimal::from(10),
         }];
-        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
-        // Act
-        let mut event = executor
-            .when(TabCommand::PlaceOrder { order_items })
-            .inspect_result()
-            .expect("failed to execute command: OrderItem");
+        let mut event = arrange_and_act(
+            tab_id,
+            Some(Vec::new()),
+            TabCommand::PlaceOrder { order_items },
+        )
+        .inspect_result()
+        .expect("failed to execute command: OrderItem");
 
-        // Assert
         assert_eq!(event.len(), 1);
         let event = event.pop().unwrap();
         assert_eq!(
@@ -508,7 +506,6 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_opened_tab_when_order_1_drink_then_ItemOrdered_event() {
-        // Arrange
         let tab_id = TabId::new();
         let order_items = vec![OrderItem {
             menu_number: 2,
@@ -516,15 +513,15 @@ pub mod tests {
             is_drink: true,
             price: Decimal::from(3),
         }];
-        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
-        // Act
-        let mut event = executor
-            .when(TabCommand::PlaceOrder { order_items })
-            .inspect_result()
-            .expect("failed to execute command: OrderItem");
+        let mut event = arrange_and_act(
+            tab_id,
+            Some(Vec::new()),
+            TabCommand::PlaceOrder { order_items },
+        )
+        .inspect_result()
+        .expect("failed to execute command: OrderItem");
 
-        // Assert
         assert_eq!(event.len(), 1);
         let event = event.pop().unwrap();
         assert_eq!(
@@ -545,7 +542,6 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_order_multiple_items_then_multiple_OrderPlaced_events() {
-        // Arrange
         let tab_id = TabId::new();
         let order_items = vec![
             OrderItem {
@@ -561,15 +557,15 @@ pub mod tests {
                 price: Decimal::from(3),
             },
         ];
-        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
-        // Act
-        let event = executor
-            .when(TabCommand::PlaceOrder { order_items })
-            .inspect_result()
-            .expect("failed to execute command: OrderItem");
+        let event = arrange_and_act(
+            tab_id,
+            Some(Vec::new()),
+            TabCommand::PlaceOrder { order_items },
+        )
+        .inspect_result()
+        .expect("failed to execute command: OrderItem");
 
-        // Assert
         assert_eq!(event.len(), 2);
         assert_eq!(
             event[0],
@@ -602,9 +598,9 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_and_drinks_ordered_when_MarkDrinksServed_command_then_DrinkServed_event() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![TabEvent::DrinkOrderPlaced {
                 id: tab_id,
@@ -615,18 +611,14 @@ pub mod tests {
                     quantity: 1,
                 },
             }]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::MarkDrinksServed {
+            TabCommand::MarkDrinksServed {
                 id: tab_id,
                 menu_numbers: vec![2],
-            })
-            .inspect_result()
-            .expect("command MarkDrinkServed failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkDrinkServed failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -641,9 +633,9 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_open_tab_and_drinks_ordered_when_MarkDrinksServed_command_uses_wrong_menu_number_then_error(
     ) {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let result = arrange_and_act(
             tab_id,
             Some(vec![TabEvent::DrinkOrderPlaced {
                 id: tab_id,
@@ -654,17 +646,13 @@ pub mod tests {
                     quantity: 1,
                 },
             }]),
-        );
-
-        // Act
-        let result = executor
-            .when(TabCommand::MarkDrinksServed {
+            TabCommand::MarkDrinksServed {
                 id: tab_id,
                 menu_numbers: vec![12],
-            })
-            .inspect_result();
+            },
+        )
+        .inspect_result();
 
-        // Assert
         assert_eq!(
             result.err().unwrap(),
             TabError::DrinkNotOutstanding { menu_number: 12 }
@@ -674,9 +662,9 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_MarkDrinksServed_twice_on_same_drink_then_DrinksNotOutstanding_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let result = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::DrinkOrderPlaced {
@@ -693,17 +681,13 @@ pub mod tests {
                     menu_number: 2,
                 },
             ]),
-        );
-
-        // Act
-        let result = executor
-            .when(TabCommand::MarkDrinksServed {
+            TabCommand::MarkDrinksServed {
                 id: tab_id,
                 menu_numbers: vec![2],
-            })
-            .inspect_result();
+            },
+        )
+        .inspect_result();
 
-        // Assert
         assert_eq!(
             result.err().unwrap(),
             TabError::DrinkNotOutstanding { menu_number: 2 }
@@ -714,9 +698,9 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_open_tab_and_drink_is_ordered_twice_when_MarkDrinksServed_twice_then_DrinkServed_event_twice(
     ) {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::DrinkOrderPlaced {
@@ -742,18 +726,14 @@ pub mod tests {
                     menu_number: 2,
                 },
             ]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::MarkDrinksServed {
+            TabCommand::MarkDrinksServed {
                 id: tab_id,
                 menu_numbers: vec![2],
-            })
-            .inspect_result()
-            .expect("command MarkDrinkServed failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkDrinkServed failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -767,60 +747,60 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_OpenTab_command_then_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
-        // Act
-        let result = executor.when(TabCommand::OpenTab {
-            waiter_id: WaiterId::new(),
-            table: 1,
-        });
+        let result = arrange_and_act(
+            tab_id,
+            Some(Vec::new()),
+            TabCommand::OpenTab {
+                waiter_id: WaiterId::new(),
+                table: 1,
+            },
+        );
 
-        // Assert
         result.then_expect_error(TabError::TabIsOpen { id: tab_id })
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_MarkFoodPrepared_command_then_FoodNotOutstanding_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodPrepared {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
+        let result = arrange_and_act(
+            tab_id,
+            Some(Vec::new()),
+            TabCommand::MarkFoodPrepared {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
+        );
 
-        // Assert
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 })
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_no_tab_when_MarkFoodPrepared_command_then_TabNotOpen_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(tab_id, None);
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodPrepared {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
+        let result = arrange_and_act(
+            tab_id,
+            None,
+            TabCommand::MarkFoodPrepared {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
+        );
 
-        // Assert
         result.then_expect_error(TabError::TabNotOpened);
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_and_food_ordered_when_MarkFoodPrepared_command_then_FoodPrepared_event() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![TabEvent::FoodOrderPlaced {
                 id: tab_id,
@@ -831,18 +811,14 @@ pub mod tests {
                     quantity: 1,
                 },
             }]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::MarkFoodPrepared {
+            TabCommand::MarkFoodPrepared {
                 id: tab_id,
                 menu_numbers: vec![1],
-            })
-            .inspect_result()
-            .expect("command MarkFoodPrepared failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkFoodPrepared failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -856,9 +832,9 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_MarkFoodPrepared_twice_on_same_food_then_FoodNotOutstanding_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let result = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::FoodOrderPlaced {
@@ -875,15 +851,12 @@ pub mod tests {
                     menu_number: 1,
                 },
             ]),
+            TabCommand::MarkFoodPrepared {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
         );
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodPrepared {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
-
-        // Assert
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 });
     }
 
@@ -891,9 +864,9 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_open_tab_and_food_is_ordered_twice_when_MarkFoodPrepared_twice_then_FoodPrepared_event_twice(
     ) {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::FoodOrderPlaced {
@@ -919,18 +892,14 @@ pub mod tests {
                     menu_number: 1,
                 },
             ]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::MarkFoodPrepared {
+            TabCommand::MarkFoodPrepared {
                 id: tab_id,
                 menu_numbers: vec![1],
-            })
-            .inspect_result()
-            .expect("command MarkFoodPrepared failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkFoodPrepared failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -944,34 +913,34 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_no_tab_when_MarkFoodServed_command_then_TabNotOpen_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(tab_id, None);
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodServed {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
+        let result = arrange_and_act(
+            tab_id,
+            None,
+            TabCommand::MarkFoodServed {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
+        );
 
-        // Assert
         result.then_expect_error(TabError::TabNotOpened);
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_MarkFoodServed_command_then_FoodNotOutstanding_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(tab_id, Some(Vec::new()));
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodServed {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
+        let result = arrange_and_act(
+            tab_id,
+            Some(Vec::new()),
+            TabCommand::MarkFoodServed {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
+        );
 
-        // Assert
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 })
     }
 
@@ -979,9 +948,9 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_open_tab_and_not_food_prepared_when_MarkFoodServed_command_then_FoodNotOutstanding_error(
     ) {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let result = arrange_and_act(
             tab_id,
             Some(vec![TabEvent::FoodOrderPlaced {
                 id: tab_id,
@@ -992,24 +961,21 @@ pub mod tests {
                     quantity: 1,
                 },
             }]),
+            TabCommand::MarkFoodServed {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
         );
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodServed {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
-
-        // Assert
         result.then_expect_error(TabError::FoodNotPrepared { menu_number: 1 })
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_and_food_prepared_when_MarkFoodServed_command_then_FoodServed_event() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::FoodOrderPlaced {
@@ -1026,18 +992,14 @@ pub mod tests {
                     menu_number: 1,
                 },
             ]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::MarkFoodServed {
+            TabCommand::MarkFoodServed {
                 id: tab_id,
                 menu_numbers: vec![1],
-            })
-            .inspect_result()
-            .expect("command MarkFoodServed failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkFoodServed failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -1051,9 +1013,9 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_MarkFoodServed_twice_on_same_food_then_FoodNotOutstanding_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let result = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::FoodOrderPlaced {
@@ -1074,15 +1036,12 @@ pub mod tests {
                     menu_number: 1,
                 },
             ]),
+            TabCommand::MarkFoodServed {
+                id: tab_id,
+                menu_numbers: vec![1],
+            },
         );
 
-        // Act
-        let result = executor.when(TabCommand::MarkFoodServed {
-            id: tab_id,
-            menu_numbers: vec![1],
-        });
-
-        // Assert
         result.then_expect_error(TabError::FoodNotOutstanding { menu_number: 1 });
     }
 
@@ -1090,9 +1049,9 @@ pub mod tests {
     #[allow(non_snake_case)]
     fn given_open_tab_and_food_is_ordered_twice_but_served_once_when_MarkFoodServed_then_FoodServed_event(
     ) {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::FoodOrderPlaced {
@@ -1126,18 +1085,14 @@ pub mod tests {
                     menu_number: 1,
                 },
             ]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::MarkFoodServed {
+            TabCommand::MarkFoodServed {
                 id: tab_id,
                 menu_numbers: vec![1],
-            })
-            .inspect_result()
-            .expect("command MarkFoodServed failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkFoodServed failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -1151,26 +1106,25 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_unopen_tab_when_CloseTab_command_then_TabNotOpen_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(tab_id, None);
+        let result = arrange_and_act(
+            tab_id,
+            None,
+            TabCommand::CloseTab {
+                id: tab_id,
+                amount_paid: Decimal::from(16),
+            },
+        );
 
-        // Act
-        let result = executor.when(TabCommand::CloseTab {
-            id: tab_id,
-            amount_paid: Decimal::from(16),
-        });
-
-        // Assert
         result.then_expect_error(TabError::TabNotOpened);
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_CloseTab_command_with_extra_amount_then_TabClosed_event_with_tip() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let event = arrange_and_act(
             tab_id,
             Some(vec![
                 TabEvent::FoodOrderPlaced {
@@ -1204,18 +1158,14 @@ pub mod tests {
                     menu_number: 2,
                 },
             ]),
-        );
-
-        // Act
-        let event = executor
-            .when(TabCommand::CloseTab {
+            TabCommand::CloseTab {
                 id: tab_id,
                 amount_paid: Decimal::from(16),
-            })
-            .inspect_result()
-            .expect("command MarkFoodServed failed");
+            },
+        )
+        .inspect_result()
+        .expect("command MarkFoodServed failed");
 
-        // Assert
         assert_eq!(event.len(), 1);
         assert_eq!(
             event[0],
@@ -1231,9 +1181,9 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_open_tab_when_CloseTab_amount_paid_not_enough_then_MustPayEnough_error() {
-        // Arrange
         let tab_id = TabId::new();
-        let executor = arrange_executor(
+
+        let result = arrange_and_act(
             tab_id,
             Some(vec![TabEvent::DrinkOrderPlaced {
                 id: tab_id,
@@ -1244,16 +1194,22 @@ pub mod tests {
                     quantity: 1,
                 },
             }]),
+            TabCommand::CloseTab {
+                id: tab_id,
+                amount_paid: Decimal::from_str("4.99").unwrap(),
+            },
         );
-
-        // Act
-        let result = executor.when(TabCommand::CloseTab {
-            id: tab_id,
-            amount_paid: Decimal::from_str("4.99").unwrap(),
-        });
 
         // Assert
         result.then_expect_error(TabError::MustPayEnough);
+    }
+
+    fn arrange_and_act(
+        tab_id: TabId,
+        given: Option<Vec<TabEvent>>,
+        when: TabCommand,
+    ) -> AggregateResultValidator<Tab> {
+        arrange_executor(tab_id, given).when(when)
     }
 
     fn arrange_executor(
