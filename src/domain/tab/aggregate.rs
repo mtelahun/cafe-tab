@@ -1139,68 +1139,68 @@ pub mod tests {
         result.then_expect_error(TabError::TabNotOpened);
     }
 
-    // #[test]
-    // #[allow(non_snake_case)]
-    // fn given_open_tab_when_CloseTab_command_with_extra_amount_then_TabClosed_event_with_tip() {
-    //     // Arrange
-    //     let tab_id = TabId::new();
-    //     let executor = arrange_executor(
-    //         tab_id,
-    //         Some(vec![
-    //             TabEvent::FoodOrderPlaced {
-    //                 id: tab_id,
-    //                 menu_item: MenuItem {
-    //                     menu_number: 1,
-    //                     description: "Steak".into(),
-    //                     price: Decimal::from(10),
-    //                     quantity: 1,
-    //                 },
-    //             },
-    //             TabEvent::DrinkOrderPlaced {
-    //                 id: tab_id,
-    //                 menu_item: MenuItem {
-    //                     menu_number: 2,
-    //                     description: "Coca-Cola".into(),
-    //                     price: Decimal::from(5),
-    //                     quantity: 1,
-    //                 },
-    //             },
-    //             TabEvent::FoodPrepared {
-    //                 id: tab_id,
-    //                 menu_number: 1,
-    //             },
-    //             TabEvent::FoodServed {
-    //                 id: tab_id,
-    //                 menu_number: 1,
-    //             },
-    //             TabEvent::DrinkServed {
-    //                 id: tab_id,
-    //                 menu_number: 2,
-    //             },
-    //         ]),
-    //     );
+    #[test]
+    #[allow(non_snake_case)]
+    fn given_open_tab_when_CloseTab_command_with_extra_amount_then_TabClosed_event_with_tip() {
+        // Arrange
+        let tab_id = TabId::new();
+        let executor = arrange_executor(
+            tab_id,
+            Some(vec![
+                TabEvent::FoodOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 1,
+                        description: "Steak".into(),
+                        price: Decimal::from(10),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::DrinkOrderPlaced {
+                    id: tab_id,
+                    menu_item: MenuItem {
+                        menu_number: 2,
+                        description: "Coca-Cola".into(),
+                        price: Decimal::from(5),
+                        quantity: 1,
+                    },
+                },
+                TabEvent::FoodPrepared {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+                TabEvent::FoodServed {
+                    id: tab_id,
+                    menu_number: 1,
+                },
+                TabEvent::DrinkServed {
+                    id: tab_id,
+                    menu_number: 2,
+                },
+            ]),
+        );
 
-    //     // Act
-    //     let event = executor
-    //         .when(TabCommand::CloseTab {
-    //             id: tab_id,
-    //             amount_paid: Decimal::from(16),
-    //         })
-    //         .inspect_result()
-    //         .expect("command MarkFoodServed failed");
+        // Act
+        let event = executor
+            .when(TabCommand::CloseTab {
+                id: tab_id,
+                amount_paid: Decimal::from(16),
+            })
+            .inspect_result()
+            .expect("command MarkFoodServed failed");
 
-    //     // Assert
-    //     assert_eq!(event.len(), 1);
-    //     assert_eq!(
-    //         event[0],
-    //         TabEvent::TabClosed {
-    //             id: tab_id,
-    //             amount_paid: Decimal::from(16),
-    //             order_value: Decimal::from(15),
-    //             tip_value: Decimal::from(1),
-    //         }
-    //     );
-    // }
+        // Assert
+        assert_eq!(event.len(), 1);
+        assert_eq!(
+            event[0],
+            TabEvent::TabClosed {
+                id: tab_id,
+                amount_paid: Decimal::from(16),
+                order_value: Decimal::from(15),
+                tip_value: Decimal::from(1),
+            }
+        );
+    }
 
     fn arrange_executor(
         tab_id: TabId,
