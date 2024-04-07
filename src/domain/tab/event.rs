@@ -51,36 +51,13 @@ pub enum TabEvent {
 impl DomainEvent for TabEvent {
     fn event_type(&self) -> String {
         match self {
-            TabEvent::TabOpened {
-                id,
-                waiter_id,
-                table,
-            } => format!(
-                "TabEvent::TabOpened {{ id: {id}, waiter_id: {waiter_id}, table: {table} }}"
-            ),
-            TabEvent::FoodOrderPlaced { id, menu_item } => {
-                format!("TabEvent::FoodOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}")
-            }
-            TabEvent::DrinkOrderPlaced { id, menu_item } => {
-                format!("TabEvent::DrinkOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}")
-            }
-            TabEvent::DrinkServed { id, menu_number } => {
-                format!("TabEvent::DrinkServed {{ id: {id}, menu_number: 1 }}")
-            }
-            TabEvent::FoodPrepared { id, menu_number } => {
-                format!("TabEvent::FoodPrepared {{ id: {id}, menu_number: 1 }}")
-            }
-            TabEvent::FoodServed { id, menu_number } => {
-                format!("TabEvent::FoodServed {{ id: {id}, menu_number: 1 }}")
-            }
-            TabEvent::TabClosed {
-                id,
-                amount_paid,
-                order_value,
-                tip_value,
-            } => format!(
-                "TabEvent::TabClosed {{ id: {id}, amount_paid: {amount_paid}, order_value: {order_value}, tip_value: {tip_value} }}"
-            )
+            TabEvent::TabOpened { .. } => "TabOpened".into(),
+            TabEvent::FoodOrderPlaced { .. } => "FoodOrderPlaced".into(),
+            TabEvent::DrinkOrderPlaced { .. } => "DrinkOrderPlaced".into(),
+            TabEvent::DrinkServed { .. } => "DrinkServed".into(),
+            TabEvent::FoodPrepared { .. } => "FoodPrepared".into(),
+            TabEvent::FoodServed { .. } => "FoodServed".into(),
+            TabEvent::TabClosed { .. } => "TabClosed".into(),
         }
     }
 
@@ -132,36 +109,13 @@ mod tests {
             tip_value: Decimal::ZERO,
         };
 
-        assert_eq!(
-            event1.event_type(),
-            format!("TabEvent::DrinkOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}"),
-        );
-        assert_eq!(
-            event2.event_type(),
-            format!("TabEvent::DrinkServed {{ id: {id}, menu_number: 1 }}"),
-        );
-        assert_eq!(
-            event3.event_type(),
-            format!("TabEvent::FoodOrderPlaced {{ id: {id}, menu_item: {menu_item:?} }}"),
-        );
-        assert_eq!(
-            event4.event_type(),
-            format!("TabEvent::TabOpened {{ id: {id}, waiter_id: {waiter_id}, table: 1 }}"),
-        );
-        assert_eq!(
-            event5.event_type(),
-            format!("TabEvent::FoodPrepared {{ id: {id}, menu_number: 1 }}"),
-        );
-        assert_eq!(
-            event6.event_type(),
-            format!("TabEvent::FoodServed {{ id: {id}, menu_number: 1 }}"),
-        );
-        assert_eq!(
-            event7.event_type(),
-            format!(
-                "TabEvent::TabClosed {{ id: {id}, amount_paid: 0, order_value: 0, tip_value: 0 }}"
-            ),
-        );
+        assert_eq!(event1.event_type(), format!("DrinkOrderPlaced"),);
+        assert_eq!(event2.event_type(), format!("DrinkServed"),);
+        assert_eq!(event3.event_type(), format!("FoodOrderPlaced"),);
+        assert_eq!(event4.event_type(), format!("TabOpened"),);
+        assert_eq!(event5.event_type(), format!("FoodPrepared"),);
+        assert_eq!(event6.event_type(), format!("FoodServed"),);
+        assert_eq!(event7.event_type(), format!("TabClosed"),);
     }
 
     #[test]
