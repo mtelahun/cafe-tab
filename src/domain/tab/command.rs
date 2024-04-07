@@ -5,12 +5,30 @@ use super::{tab_id::TabId, waiter_id::WaiterId};
 
 #[derive(Debug, Deserialize)]
 pub enum TabCommand {
-    OpenTab { waiter_id: WaiterId, table: usize },
-    PlaceOrder { order_items: Vec<OrderItem> },
-    MarkDrinksServed { id: TabId, menu_numbers: Vec<usize> },
-    MarkFoodPrepared { id: TabId, menu_numbers: Vec<usize> },
-    MarkFoodServed { id: TabId, menu_numbers: Vec<usize> },
-    CloseTab { id: TabId, amount_paid: Decimal },
+    OpenTab {
+        id: TabId,
+        waiter_id: WaiterId,
+        table: usize,
+    },
+    PlaceOrder {
+        order_items: Vec<OrderItem>,
+    },
+    MarkDrinksServed {
+        id: TabId,
+        menu_numbers: Vec<usize>,
+    },
+    MarkFoodPrepared {
+        id: TabId,
+        menu_numbers: Vec<usize>,
+    },
+    MarkFoodServed {
+        id: TabId,
+        menu_numbers: Vec<usize>,
+    },
+    CloseTab {
+        id: TabId,
+        amount_paid: Decimal,
+    },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]

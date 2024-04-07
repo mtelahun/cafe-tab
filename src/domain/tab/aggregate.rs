@@ -51,11 +51,15 @@ impl Aggregate for Tab {
         _service: &Self::Services,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
-            TabCommand::OpenTab { waiter_id, table } => {
+            TabCommand::OpenTab {
+                id,
+                waiter_id,
+                table,
+            } => {
                 if self.tab_is_open() {
                     return Err(TabError::TabIsOpen { id: self.id });
                 }
-                self.handle_open_tab_command(&waiter_id, table)
+                self.handle_open_tab_command(&id, &waiter_id, table)
             }
             TabCommand::CloseTab { id, amount_paid } => {
                 self.tab_is_open_or_error()?;
@@ -357,11 +361,12 @@ impl Tab {
 
     fn handle_open_tab_command(
         &self,
+        id: &TabId,
         waiter_id: &WaiterId,
         table: usize,
     ) -> Result<Vec<TabEvent>, TabError> {
         Ok(vec![TabEvent::TabOpened {
-            id: TabId::new(),
+            id: *id,
             waiter_id: *waiter_id,
             table,
         }])
@@ -437,12 +442,14 @@ pub mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn given_tab_with_no_events_when_OpenTab_command_then_TabOpened_event() {
+        let id = TabId::new();
         let expected_waiter_id = WaiterId::new();
 
         let result = arrange_and_act(
-            TabId::default(),
+            id,
             None,
             TabCommand::OpenTab {
+                id,
                 waiter_id: expected_waiter_id,
                 table: 1,
             },
@@ -753,6 +760,7 @@ pub mod tests {
             tab_id,
             Some(Vec::new()),
             TabCommand::OpenTab {
+                id: tab_id,
                 waiter_id: WaiterId::new(),
                 table: 1,
             },
