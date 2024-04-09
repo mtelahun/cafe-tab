@@ -15,7 +15,7 @@ pub struct KitchenTodoList {
     inner: RwLock<Vec<KitchenTabView>>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct KitchenTabView {
     pub(crate) tab_id: TabId,
     pub(crate) food_items: Vec<KitchenTabItem>,
@@ -82,7 +82,13 @@ impl View<Tab> for KitchenTabView {
 #[async_trait]
 impl KitchenTodoListQuery for KitchenTodoList {
     async fn get_kitchen_todo_list(&self) -> Vec<KitchenTabView> {
-        todo!()
+        let inner = self.inner.read().await;
+        let mut result = Vec::with_capacity(inner.len());
+        for item in inner.iter() {
+            result.push(item.clone())
+        }
+
+        result
     }
 }
 
