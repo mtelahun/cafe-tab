@@ -79,3 +79,32 @@ async fn given_tab_with_1_food_order_when_another_food_order_then_kitchen_list_v
     assert_eq!(actual[0].food_items()[1].menu_number(), 1);
     assert_eq!(actual[0].food_items()[1].description(), "Steak");
 }
+
+#[tokio::test]
+async fn given_tab_with_1_food_order_when_kitchen_marks_it_prepared_then_kitchen_todo_list_shows_0_food_orders(
+) {
+    // Arrange
+    let state = TestState::new(AggregateState::Open).await;
+    state
+        .execute_command(TabCommand::PlaceOrder {
+            order_items: vec![OrderItem {
+                menu_number: 1,
+                description: "Steak".into(),
+                is_drink: false,
+                price: Decimal::from(10),
+            }],
+        })
+        .await;
+
+    // Act
+    state
+        .execute_command(TabCommand::MarkFoodPrepared {
+            id: state.tab_id,
+            menu_numbers: vec![1],
+        })
+        .await;
+
+    // Assert
+    let actual = state.load_kitchen_todo_list().await;
+    assert_eq!(actual.len(), 0);
+}
