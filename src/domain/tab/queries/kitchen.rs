@@ -22,8 +22,8 @@ pub struct TodoListGroup {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct TodoListItem {
-    pub(crate) menu_number: usize,
-    pub(crate) description: String,
+    pub menu_number: usize,
+    pub description: String,
 }
 
 impl KitchenTodoList {
@@ -48,13 +48,6 @@ impl TodoListGroup {
 }
 
 impl TodoListItem {
-    pub fn new(menu_number: usize, description: &str) -> Self {
-        Self {
-            menu_number,
-            description: description.to_owned(),
-        }
-    }
-
     pub fn menu_number(&self) -> usize {
         self.menu_number
     }
@@ -64,25 +57,25 @@ impl TodoListItem {
     }
 }
 
-impl View<Tab> for TodoListGroup {
-    fn update(&mut self, event: &cqrs_es::EventEnvelope<Tab>) {
-        match &event.payload {
-            crate::domain::tab::event::TabEvent::FoodOrderPlaced { id, menu_item } => {
-                let tab_item = TodoListItem {
-                    menu_number: menu_item.menu_number,
-                    description: menu_item.description.clone(),
-                };
-                self.tab_id = *id;
-                self.food_items.push(tab_item);
-            }
-            crate::domain::tab::event::TabEvent::FoodPrepared {
-                id: _,
-                menu_number: _,
-            } => {}
-            _ => {}
-        }
-    }
-}
+// impl View<Tab> for TodoListGroup {
+//     fn update(&mut self, event: &cqrs_es::EventEnvelope<Tab>) {
+//         match &event.payload {
+//             crate::domain::tab::event::TabEvent::FoodOrderPlaced { id, menu_item } => {
+//                 let tab_item = TodoListItem {
+//                     menu_number: menu_item.menu_number,
+//                     description: menu_item.description.clone(),
+//                 };
+//                 self.tab_id = *id;
+//                 self.food_items.push(tab_item);
+//             }
+//             crate::domain::tab::event::TabEvent::FoodPrepared {
+//                 id: _,
+//                 menu_number: _,
+//             } => {}
+//             _ => {}
+//         }
+//     }
+// }
 
 impl View<Tab> for KitchenTodoList {
     fn update(&mut self, event: &cqrs_es::EventEnvelope<Tab>) {
@@ -119,7 +112,6 @@ impl View<Tab> for KitchenTodoList {
 #[async_trait]
 impl KitchenTodoListQuery for KitchenTodoList {
     async fn get_kitchen_todo_list(&self) -> Vec<TodoListGroup> {
-        // let inner = self.inner.read().await;
         let mut result = Vec::with_capacity(self.inner.len());
         for item in self.inner.iter() {
             result.push(item.clone())
