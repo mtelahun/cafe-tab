@@ -11,7 +11,8 @@ use crate::{
     shared_kernel::{KitchenTabQuery, KitchenTabViewRepository},
 };
 
-type TabCqrsFramework = Arc<CqrsFramework<Tab, PersistedEventStore<PostgresEventRepository, Tab>>>;
+pub type TabCqrsFramework =
+    Arc<CqrsFramework<Tab, PersistedEventStore<PostgresEventRepository, Tab>>>;
 
 pub fn cqrs_tab(
     pool: Pool<Postgres>,
