@@ -100,10 +100,27 @@ impl View<Tab> for KitchenTodoList {
                     }),
                 };
             }
-            crate::domain::tab::event::TabEvent::FoodPrepared {
-                id: _,
-                menu_number: _,
-            } => {}
+            crate::domain::tab::event::TabEvent::FoodPrepared { id, menu_number } => {
+                let mut remove_tab = false;
+                for tab in self.inner.iter_mut() {
+                    if tab.tab_id == *id {
+                        tab.food_items.remove(
+                            tab.food_items
+                                .iter()
+                                .position(|f| f.menu_number == *menu_number)
+                                .unwrap(),
+                        );
+                        if tab.food_items.is_empty() {
+                            remove_tab = true;
+                        }
+                        break;
+                    }
+                }
+                if remove_tab {
+                    self.inner
+                        .remove(self.inner.iter().position(|t| t.tab_id == *id).unwrap());
+                }
+            }
             _ => {}
         }
     }
