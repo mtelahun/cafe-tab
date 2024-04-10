@@ -75,4 +75,21 @@ mod test {
         assert_eq!(tab.open_items()[0].menu_number(), 2);
         assert_eq!(tab.open_items()[0].description(), "Coca-Cola");
     }
+
+    #[test]
+    fn given_open_tab_with_one_item_when_remove_item_then_open_items_is_empty() {
+        // Arrange
+        let id = TabId::new();
+        let mut tab = OpenTab::new(id);
+        tab.add_item(OpenItem {
+            menu_number: 2,
+            description: "Coca-Cola".into(),
+        });
+
+        // Act
+        tab.remove_item(2);
+
+        let tab = tab;
+        assert!(tab.open_items().is_empty())
+    }
 }
