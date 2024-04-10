@@ -118,3 +118,29 @@ async fn initially_waiter_todo_list_is_empty() {
     let actual = state.get_waiter_todo_list().await;
     assert_eq!(actual.len(), 0);
 }
+
+#[tokio::test]
+async fn given_new_tab_when_1_food_order_then_waiter_list_view_shows_1_food_order() {
+    // Arrange
+    let state = TestState::new(AggregateState::Open).await;
+
+    // Act
+    state
+        .execute_command(TabCommand::PlaceOrder {
+            order_items: vec![OrderItem {
+                menu_number: 1,
+                description: "Steak".into(),
+                is_drink: false,
+                price: Decimal::from(10),
+            }],
+        })
+        .await;
+
+    // Assert
+    let actual = state.get_waiter_todo_list().await;
+    assert_eq!(actual.len(), 1);
+    assert_eq!(actual[0].tab_id(), state.tab_id);
+    assert_eq!(actual[0].food_items().len(), 1);
+    assert_eq!(actual[0].food_items()[0].menu_number(), 1);
+    assert_eq!(actual[0].food_items()[0].description(), "Steak");
+}
