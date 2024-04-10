@@ -78,3 +78,9 @@ Concretely, an aggregate is either:
 This is demanding from a design perspective, as it forces us to identify and segregate business concepts. It also means we have to really focus on consistency boundaries.
 
 Our current example has been carefully selected to have just one aggregate type - namely, a tab. However, in most systems you will have more work to do in order to identify aggregates. The authors of this tutorial have found that starting from the events and commands, then trying to group them based on invariants (business rules you need to uphold), is a good strategy.
+
+## Running the tests
+
+First, run the `init_db.sh` script in the [scripts](./scripts) directory to bring up a PostgreSQL docker container. Then run
+
+```cargo test```
