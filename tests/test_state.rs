@@ -44,7 +44,12 @@ impl TestState {
         let services = TabServices {};
         let waiter_todo_list = WaiterTabViewRepository::new(pool.clone());
         let tab_kitchen_todo_list = KitchenTabViewRepository::new(pool.clone());
-        let tab_aggregate = cqrs_tab(pool, services, tab_kitchen_todo_list.clone());
+        let tab_aggregate = cqrs_tab(
+            pool,
+            services,
+            waiter_todo_list.clone(),
+            tab_kitchen_todo_list.clone(),
+        );
         let tab_id = TabId::new();
         let waiter_id = WaiterId::new();
         Self::initialize_aggregate_state(&tab_aggregate, tab_id, waiter_id, aggregate_state).await;
@@ -76,7 +81,7 @@ impl TestState {
         self.waiter_todo_list
             .load(&self.tab_id.to_string())
             .await
-            .expect("failed to load the kitchen tab view")
+            .expect("failed to load the waiter tab view")
             .unwrap()
     }
 
