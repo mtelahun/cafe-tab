@@ -8,6 +8,11 @@ use crate::domain::tab::tab_id::TabId;
 // }
 
 #[derive(Clone, Debug)]
+pub struct WaiterTodoList {
+    inner: Vec<OpenTab>,
+}
+
+#[derive(Clone, Debug)]
 pub struct OpenItem {
     menu_number: usize,
     description: String,
@@ -61,7 +66,10 @@ impl OpenTab {
 
 #[cfg(test)]
 mod test {
-    use crate::domain::tab::{queries::open_tabs::OpenItem, tab_id::TabId};
+    use crate::domain::tab::{
+        queries::open_tabs::{OpenItem, WaiterTodoList},
+        tab_id::TabId,
+    };
 
     use super::OpenTab;
 
@@ -107,5 +115,13 @@ mod test {
 
         let tab = tab;
         assert!(tab.open_items().is_empty())
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn when_new_WaiterTodoList_then_open_items_is_empty() {
+        let list = WaiterTodoList::new();
+
+        assert!(list.is_empty())
     }
 }
