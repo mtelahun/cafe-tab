@@ -1,4 +1,7 @@
-use crate::domain::tab::tab_id::TabId;
+use cqrs_es::View;
+use serde::{Deserialize, Serialize};
+
+use crate::domain::tab::{aggregate::Tab, tab_id::TabId};
 
 // pub trait OpenTabQuery {
 //     fn active_table_numbers(&self) -> Vec<usize>;
@@ -7,18 +10,18 @@ use crate::domain::tab::tab_id::TabId;
 //     fn waiter_todo_list(&self, id: WaiterId) -> WaiterTodoList;
 // }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct WaiterTodoList {
     inner: Vec<OpenTab>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct OpenItem {
     menu_number: usize,
     description: String,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct OpenTab {
     id: TabId,
     open_items: Vec<OpenItem>,
@@ -61,6 +64,36 @@ impl OpenTab {
                 .position(|i| i.menu_number == menu_number)
                 .unwrap(),
         );
+    }
+}
+
+impl WaiterTodoList {
+    pub fn new() -> Self {
+        Self { inner: Vec::new() }
+    }
+}
+
+impl std::ops::Deref for WaiterTodoList {
+    type Target = Vec<OpenTab>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl View<Tab> for WaiterTodoList {
+    fn update(&mut self, event: &cqrs_es::EventEnvelope<Tab>) {
+        match &event.payload {
+            crate::domain::tab::event::TabEvent::FoodOrderPlaced {
+                id: _,
+                menu_item: _,
+            } => {}
+            crate::domain::tab::event::TabEvent::FoodPrepared {
+                id: _,
+                menu_number: _,
+            } => {}
+            _ => {}
+        }
     }
 }
 
