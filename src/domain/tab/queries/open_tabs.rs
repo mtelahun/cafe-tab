@@ -1,5 +1,12 @@
 use crate::domain::tab::tab_id::TabId;
 
+// pub trait OpenTabQuery {
+//     fn active_table_numbers(&self) -> Vec<usize>;
+//     fn invoice_for_table(&self, table: usize) -> TabInvoice;
+//     fn tab_for_table(&self, table: usize) -> TabStatus;
+//     fn waiter_todo_list(&self, id: WaiterId) -> WaiterTodoList;
+// }
+
 #[derive(Clone, Debug)]
 pub struct OpenItem {
     menu_number: usize,
@@ -40,6 +47,15 @@ impl OpenTab {
 
     pub fn open_items(&self) -> Vec<OpenItem> {
         self.open_items.clone()
+    }
+
+    pub fn remove_item(&mut self, menu_number: usize) {
+        self.open_items.remove(
+            self.open_items
+                .iter()
+                .position(|i| i.menu_number == menu_number)
+                .unwrap(),
+        );
     }
 }
 
