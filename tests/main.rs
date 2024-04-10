@@ -108,3 +108,13 @@ async fn given_tab_with_1_food_order_when_kitchen_marks_it_prepared_then_kitchen
     let actual = state.load_kitchen_todo_list().await;
     assert_eq!(actual.len(), 0);
 }
+
+#[tokio::test]
+async fn initially_waiter_todo_list_is_empty() {
+    // Act
+    let state = TestState::new(AggregateState::Open).await;
+
+    // Assert
+    let actual = state.get_waiter_todo_list().await;
+    assert_eq!(actual.len(), 0);
+}
