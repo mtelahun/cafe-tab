@@ -1,15 +1,25 @@
 use crate::domain::tab::tab_id::TabId;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct OpenItem {
     menu_number: usize,
     description: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct OpenTab {
     id: TabId,
     open_items: Vec<OpenItem>,
+}
+
+impl OpenItem {
+    pub fn description(&self) -> String {
+        self.description.clone()
+    }
+
+    pub fn menu_number(&self) -> usize {
+        self.menu_number
+    }
 }
 
 impl OpenTab {
@@ -18,6 +28,18 @@ impl OpenTab {
             id,
             open_items: Vec::new(),
         }
+    }
+
+    pub fn add_item(&mut self, item: OpenItem) {
+        self.open_items.push(item)
+    }
+
+    pub fn id(&self) -> TabId {
+        self.id
+    }
+
+    pub fn open_items(&self) -> Vec<OpenItem> {
+        self.open_items.clone()
     }
 }
 
@@ -38,15 +60,16 @@ mod test {
     fn given_open_tab_when_add_open_item_then_open_items_has_one_item() {
         // Arrange
         let id = TabId::new();
-        let tab = OpenTab::new(id);
+        let mut tab = OpenTab::new(id);
         let item = OpenItem {
             menu_number: 2,
             description: "Coca-Cola".into(),
         };
 
         // Act
-        tab.add_item(id, item);
+        tab.add_item(item);
 
+        let tab = tab;
         assert_eq!(tab.id(), id);
         assert_eq!(tab.open_items.len(), 1);
         assert_eq!(tab.open_items()[0].menu_number(), 2);
