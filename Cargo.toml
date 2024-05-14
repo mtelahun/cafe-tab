@@ -12,6 +12,6 @@ postgres-es = "0.4.11"
 rust_decimal = "1.35.0"
 secrecy = "0.8.0"
 serde = { version = "1.0.197", features = ["derive"] }
-sqlx = "0.7.4"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "postgres" ] }
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
 uuid = { version = "1.8.0", features = ["serde", "v4"] }
