@@ -139,8 +139,8 @@ async fn given_new_tab_when_1_food_order_then_waiter_list_view_shows_1_food_orde
     // Assert
     let actual = state.get_waiter_todo_list().await;
     assert_eq!(actual.len(), 1);
-    assert_eq!(actual[0].tab_id(), state.tab_id);
-    assert_eq!(actual[0].food_items().len(), 1);
-    assert_eq!(actual[0].food_items()[0].menu_number(), 1);
-    assert_eq!(actual[0].food_items()[0].description(), "Steak");
+    assert_eq!(actual[0].id(), state.tab_id);
+    assert_eq!(actual[0].open_items().len(), 1);
+    assert_eq!(actual[0].open_items()[0].menu_number(), 1);
+    assert_eq!(actual[0].open_items()[0].description(), "Steak");
 }
